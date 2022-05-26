@@ -1,7 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const TronWeb = require('tronweb');
-var cors = require('cors')
+var cors = require('cors');
 require('dotenv').config();
 
 function delay(ms) {
