@@ -99,7 +99,7 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 
 				}
 		}
-	    res.send(response);
+
 
 	}else{
 
@@ -108,9 +108,11 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		    	"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
 		    	"Data": {}
 		}
-	    res.send(response);
 
 	}
+
+	res.send(response);
+
 });
 
 app.get('/api/v1/data/:peticion',async(req,res) => {
