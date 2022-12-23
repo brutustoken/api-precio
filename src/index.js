@@ -42,6 +42,7 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
+		/*
 		let consulta = await fetch(API)
 		.catch(error =>{console.error(error)})
 		const json = await consulta.json();
@@ -49,7 +50,9 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		let precio = json.values[0];
 		precio = precio[1];
 		precio = precio.replace(',', '.');
-		precio = parseFloat(precio);
+		precio = parseFloat(precio);*/
+
+		let precio = 12.30;
 
 		let contract = await tronWeb.contract().at(addressContract);
 		let RATE = await contract.RATE().call();
@@ -66,7 +69,7 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		    		"par": "BRUT_USD"
 				}
 		}
-	    res.status(200).send(response);
+	    res.send(response);
 
 	}if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
 
@@ -123,7 +126,7 @@ app.get('/api/v1/data/:peticion',async(req,res) => {
 		SUPPLY = parseInt(SUPPLY._hex);
 
 		response = SUPPLY/10**6;
-	    res.status(200).send(`${response}`);
+	    res.send(`${response}`);
 
 	}else{
 
