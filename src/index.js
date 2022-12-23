@@ -38,7 +38,11 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 
     let moneda = req.params.moneda;
 
-  	var response = {};
+  	var response = {
+			"Ok": false,
+			"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
+			"Data": {}
+	}
 
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
@@ -69,9 +73,10 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		    		"par": "BRUT_USD"
 				}
 		}
-	    res.send(response);
 
-	}if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
+	}
+	
+	if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
 
 		var contractpool = await tronWeb.contract().at(addressContractPool);
 		var RATE = await contractpool.RATE().call();
@@ -101,14 +106,6 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		}
 
 
-	}else{
-
-		response = {
-				"Ok": false,
-		    	"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
-		    	"Data": {}
-		}
-
 	}
 
 	res.send(response);
@@ -119,7 +116,11 @@ app.get('/api/v1/data/:peticion',async(req,res) => {
 
     let peticion = req.params.peticion;
 
-  	var response = {};
+  	var response = {
+		"Ok": false,
+		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
+		"Data": {}
+	}
 
 	if (peticion == "circulating" || peticion == "totalcoins" ) {
 
@@ -130,16 +131,10 @@ app.get('/api/v1/data/:peticion',async(req,res) => {
 		response = SUPPLY/10**6;
 	    res.send(`${response}`);
 
-	}else{
-
-		response = {
-				"Ok": false,
-		    	"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
-		    	"Data": {}
-		}
-	    res.send(response);
-
 	}
+
+	res.send(response);
+
 });
 
 
