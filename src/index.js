@@ -65,12 +65,22 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		if(RATE != precio*10**6){
 			await contract.ChangeRate(precio*10**6).send();
 		}
+
+		let consulta = await fetch(
+			"https://api.just.network/swap/scan/statusinfo"
+		  ).catch((error) => {
+			console.error(error);
+		  });
+		var json = await consulta.json();
+		
+		var Pricetrx = precio / json.data.trxPrice;
 		
 		response = {
 				"Ok": true,
 		    	"Data": {
-		    		"precio": precio,
-		    		"par": "BRUT_USD"
+					"moneda": "BRUT",
+		    		"usd": precio,
+					"trx":Pricetrx
 				}
 		}
 
