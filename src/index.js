@@ -170,6 +170,35 @@ async function upDatePrecio(){
 
 };
 
+async function comprarBRST(){
+
+	var cuenta = await tronWeb2.trx.getAccount();
+
+	cuenta.balance = 0;
+	if(cuenta.balance){
+		cuenta.balance = cuenta.balance/10**6;
+	}
+
+	cuenta.wallet = tronWeb2.address.fromHex(cuenta.address);
+
+	const contractPool = await tronWeb2.contract().at(addressContractPool);
+
+	console.log("--------- AUTOCOMPRA BRST -----------");
+	console.log("wallet: "+cuenta.wallet);
+	console.log("balance: "+cuenta.balance+" TRX");
+
+	console.log("------------------------------");
+
+	// comprar auto brst
+	if(cuenta.balance >= 100 && true){
+		
+		var tx = await contractPool.staking().send({callValue: parseInt(cuenta.balance*10**6)});
+		console.log("[Ejecución: compra de BRST "+tx+"]");
+	}
+	
+
+};
+
 async function ajusteMoneda(){
 
 	var cuenta = await tronWeb.trx.getAccount();
@@ -236,30 +265,7 @@ async function ajusteMoneda(){
 
 };
 
-async function comprarBRST(){
 
-	var cuenta = await tronWeb2.trx.getAccount();
-	cuenta.balance = cuenta.balance/10**6;
-
-	cuenta.wallet = tronWeb2.address.fromHex(cuenta.address);
-
-	const contractPool = await tronWeb2.contract().at(addressContractPool);
-
-	console.log("--------- AUTOCOMPRA BRST -----------");
-	console.log("wallet: "+cuenta.wallet);
-	console.log("Cuenta: "+cuenta.balance+" TRX");
-
-	console.log("------------------------------");
-
-	// comprar auto brst
-	if(cuenta.balance >= 100 && true){
-		
-		var tx = await contractPool.staking().send({callValue: parseInt(cuenta.balance*10**6)});
-		console.log("[Ejecución: compra de BRST "+tx+"]");
-	}
-	
-
-};
 
 app.get('/api/v1',async(req,res) => {
 
