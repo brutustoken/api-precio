@@ -205,10 +205,7 @@ async function ajusteMoneda(){
 	cuenta.balance = cuenta.balance/10**6;
 
 	cuenta.wallet = tronWeb.address.fromHex(cuenta.address);
-	console.log("AJUSTE DE DIFERENCIAS");
-
-	console.log("Wallet: "+cuenta.wallet);
-
+	
 	//console.log(cuenta);
 
 	var votos = 0;
@@ -244,11 +241,16 @@ async function ajusteMoneda(){
 	console.log("Diferencia: "+diferencia+" TRX");
 
 	console.log("------------------------------");
+	console.log("Wallet: "+cuenta.wallet);
+
+	console.log("AJUSTE DE DIFERENCIAS");
+
+
+	console.log(diferencia > 0)
 
 	// ajusta las perdidas o ganancias
 	if(diferencia > 0 && true){
-		
-		var tx = await contractPool.gananciaDirecta(diferencia*10**6).send();
+		var tx = await contractPool.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
 		console.log("[Ejecución Contrato: "+tx+"]");
 	}
 
