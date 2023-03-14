@@ -28,6 +28,8 @@ const addressParaenergia = "TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf";
 
 // otra manuel TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf
 
+var lastTimeBRUT;
+
 var tronWeb = new TronWeb(
 	TRONGRID_API,
 	TRONGRID_API,
@@ -68,6 +70,7 @@ async function upDatePrecio(){
 	cuenta.balance = cuenta.balance/10**6;
 
 	//console.log(cuenta);
+
 	var votos = 0;
 
 	if(cuenta.account_resource.frozen_balance_for_energy.frozen_balance){
@@ -114,7 +117,7 @@ async function upDatePrecio(){
 	// ajusta la caticad de TRX para que siempre sea igual en el contrato
 	if(recompensas > 0 && false){
 		const contractPool = await tronWeb.contract().at(addressPool);
-		var tx = await contractPool.gananciaDirecta(1).send();
+		var tx = await contractPool.gananciaDirecta(parseInt(recompensas/10**6)).send();
 		console.log("[Ejecución Contrato: "+tx+"]");
 	}
 	
@@ -247,7 +250,7 @@ async function ajusteMoneda(){
 	// ajusta las perdidas o ganancias
 	if(diferencia > 0 && true){
 		var tx = await contractPool.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
-		console.log("[Ejecución Contrato: "+tx+"]");
+		console.log("[Ejecución: ganancia directa "+tx+"]");
 	}
 
 	var recompensas = await tronWeb.trx.getReward(cuenta.address);
@@ -263,6 +266,29 @@ async function ajusteMoneda(){
 
 };
 
+async function actualizarPrecioBRUTContrato() {
+	let precio = await fetch(API)
+	.catch(error =>{console.error(error)})
+	const json = await precio.json();
+
+	precio = json.values[0];
+	precio = precio[1];
+	precio = precio.replace(',', '.');
+	precio = parseFloat(precio);
+
+	//let precio = 12.92;
+
+	let contract = await tronWeb.contract().at(addressContract);
+	let RATE = await contract.RATE().call();
+	RATE = parseInt(RATE._hex);
+
+	if(RATE != parseInt(precio*10**6) && Date.now() >= lastTimeBRUT + 1*3600*1000 && true){
+		console.log("actualizando precio BRUT");
+		await contract.ChangeRate(parseInt(precio*10**6)).send();
+		lastTimeBRUT = Date.now()
+	}
+}
+
 
 
 app.get('/api/v1',async(req,res) => {
@@ -276,9 +302,9 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
     let moneda = req.params.moneda;
 
   	var response = {
-			"Ok": false,
-			"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
-			"Data": {}
+		"Ok": false,
+		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
+		"Data": {}
 	}
 
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
