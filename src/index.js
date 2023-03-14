@@ -241,12 +241,8 @@ async function ajusteMoneda(){
 	console.log("Diferencia: "+diferencia+" TRX");
 
 	console.log("------------------------------");
-	console.log("Wallet: "+cuenta.wallet);
-
-	console.log("AJUSTE DE DIFERENCIAS");
-
-
-	console.log(diferencia > 0)
+	console.log("Wallet ajustes: "+cuenta.wallet);
+	console.log("------------------------------");
 
 	// ajusta las perdidas o ganancias
 	if(diferencia > 0 && true){
@@ -303,8 +299,9 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		let RATE = await contract.RATE().call();
 		RATE = parseInt(RATE._hex);
 
-		if(RATE != precio*10**6){
-			await contract.ChangeRate(precio*10**6).send();
+		if(RATE != parseInt(precio*10**6) && false){
+			console.log("actualizando precio BRUT");
+			await contract.ChangeRate(parseInt(precio*10**6)).send();
 		}
 
 		let Pricetrx = await fetch(
