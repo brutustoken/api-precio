@@ -17,6 +17,10 @@ const PEKEY = process.env.APP_PRIVATEKEY;
 const PEKEY2 = process.env.APP_PRIVATEKEY2;
 const API = process.env.APP_GOOGLE_API;
 
+const API_last_BRUT = process.env.APP_GOOGLE_API_BRUT;
+const API_last_BRST = process.env.APP_GOOGLE_API_BRST;
+
+
 const TRONGRID_API = "https://api.trongrid.io";
 const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R1jvVQeq";
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
@@ -51,6 +55,7 @@ cron.schedule('*/30 * * * * *', async() => {
   	//await upDatePrecio(); lo hace el de telegram
 	await comprarBRST();
 	await ajusteMoneda();
+	await actualizarPrecioBRUTContrato();
 	console.log('=>Done: '+new Date().toLocaleString());
 	
 });
@@ -314,9 +319,7 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		.catch(error =>{console.error(error)})
 		const json = await precio.json();
 
-		precio = json.values[0];
-		precio = precio[1];
-		precio = precio.replace(',', '.');
+		precio = (json.values[0][0]).replace(',', '.');
 		precio = parseFloat(precio);
 
 		//let precio = 12.30;
@@ -327,7 +330,7 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 
 		if(RATE != parseInt(precio*10**6) && false){
 			console.log("actualizando precio BRUT");
-			await contract.ChangeRate(parseInt(precio*10**6)).send();
+			await actualizarPrecioBRUTContrato();
 		}
 
 		let Pricetrx = await fetch(
@@ -338,13 +341,22 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		Pricetrx = await Pricetrx.json();
 		
 		Pricetrx = precio / Pricetrx.data.trxPrice;
+
+		let variacion = await fetch(API_last_BRUT).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+		//const json2 = await precio.json();_last_BRUT C8   ||| brst B8
+
+		variacion = (variacion.values[0][0]).replace(',', '.');
+		variacion = parseFloat(variacion);
+
+		variacion = (precio-variacion)/precio;
 		
 		response = {
 			"Ok": true,
 			"Data": {
 				"moneda": "BRUT",
+				"trx": Pricetrx,
 				"usd": precio,
-				"trx":Pricetrx
+				"v24h": variacion*100
 			}
 		}
 
@@ -369,12 +381,19 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 		Price = parseInt(Price*10**6);
 		Price = Price/10**6;
 
+		let variacion = await fetch(API_last_BRST).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+		variacion = (variacion.values[0][0]).replace(',', '.');
+		variacion = parseFloat(variacion);
+
+		variacion = (RATE-variacion)/RATE;
+
 		response = {
 				"Ok": true,
 		    	"Data": {
 					"moneda": "BRST",
 		    		"trx": RATE,
-					"usd": Price
+					"usd": Price,
+					"v24h": variacion*100
 
 				}
 		}
