@@ -1,36 +1,60 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const TronWeb = require('tronweb');
+const mongoose = require('mongoose');
+
 var cors = require('cors');
 require('dotenv').config();
 const cron = require('node-cron');
-
 
 function delay(ms) {return new Promise(res => setTimeout(res, ms));}
 
 const app = express();
 app.use(cors());
 
-
 const port = process.env.PORT || 3004;
 const PEKEY = process.env.APP_PRIVATEKEY;
 const PEKEY2 = process.env.APP_PRIVATEKEY2;
 const API = process.env.APP_GOOGLE_API;
+const uriMongoDB = process.env.APP_URIMONGODB
 
 const API_last_BRUT = process.env.APP_GOOGLE_API_BRUT;
 const API_last_BRST = process.env.APP_GOOGLE_API_BRST;
-
 
 const TRONGRID_API = "https://api.trongrid.io";
 const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R1jvVQeq";
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
 const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
 
+mongoose.set('strictQuery', false);
+mongoose.connect(uriMongoDB)
+.then(()=>{
+  console.log("conectado MongoDB")
+})
+.catch(console.log)
+
+const Schema = mongoose.Schema;
+
+const Precios = new Schema({
+  par: String,
+  valor: Number,
+  date: Date,
+  epoch: Number
+});
+
+const PrecioBRST = mongoose.model('brst', Precios);
+const PrecioBRUT = mongoose.model('brut', Precios);
+
 const addressParaenergia = "TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf";
 
 // BRST TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY
 
 // otra manuel TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf
+
+var base = "api"
+var version = "v1"
+
+const URL = "/"+base+"/"+version+"/"
 
 var lastTimeBRUT;
 
@@ -294,15 +318,13 @@ async function actualizarPrecioBRUTContrato() {
 	}
 }
 
-
-
-app.get('/api/v1',async(req,res) => {
+app.get(URL,async(req,res) => {
 
     res.send("Conectado y funcionando v1.0");
 });
 
 
-app.get('/api/v1/precio/:moneda',async(req,res) => {
+app.get(URL+'precio/:moneda',async(req,res) => {
 
     let moneda = req.params.moneda;
 
@@ -405,7 +427,7 @@ app.get('/api/v1/precio/:moneda',async(req,res) => {
 
 });
 
-app.get('/api/v1/data/:peticion',async(req,res) => {
+app.get(URL+'data/:peticion',async(req,res) => {
 
     let peticion = req.params.peticion;
 
@@ -430,7 +452,8 @@ app.get('/api/v1/data/:peticion',async(req,res) => {
 
 });
 
-app.get('/api/v1/ajuste',async(req,res) => {
+/*
+app.get(URL+'ajuste',async(req,res) => {
 
 	const contractPool = await tronWeb.contract().at(addressPool);
 	var response = {};
@@ -459,7 +482,57 @@ app.get('/api/v1/ajuste',async(req,res) => {
 	res.send(response);
 
 });
+*/
+
+app.get(URL+'chartdata/:moneda',async(req,res) => {
+
+    let moneda = req.params.moneda;
+
+  	var response = {
+		"Ok": false,
+		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
+		"Data": {}
+	}
+
+	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
+
+		let consulta = await PrecioBRUT.find({}).sort({date: -1}).limit(30)
+		console.log(consulta)
+		let datos = [];
+
+		for (let index = 0; index < consulta.length; index++) {
+			let tiempo = (new Date(consulta[index].date)).getTime()
+			datos.push({date: tiempo, value: consulta[index].valor });
+			
+		}
+		response = {
+			"Ok": true,
+			"Data": datos
+		}
+
+	}
+	
+	if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
+
+		let consulta = await PrecioBRST.find({}).sort({date: -1}).limit(30)
+		console.log(consulta)
+		let datos = [];
+
+		for (let index = 0; index < consulta.length; index++) {
+			let tiempo = (new Date(consulta[index].date)).getTime()
+			datos.push({date: tiempo, value: consulta[index].valor });
+			
+		}
+		response = {
+			"Ok": true,
+			"Data": datos
+		}
 
 
+	}
+
+	res.send(response);
+
+});
 
 app.listen(port, ()=> console.log('Escuchando Puerto: ' + port))
