@@ -487,6 +487,13 @@ app.get(URL+'ajuste',async(req,res) => {
 app.get(URL+'chartdata/:moneda',async(req,res) => {
 
     let moneda = req.params.moneda;
+	let limite = 30;
+
+	if(req.query){
+		if(req.query.dias){
+			limite = parseInt(req.query.dias)
+		}
+	}
 
   	var response = {
 		"Ok": false,
@@ -496,8 +503,7 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
-		let consulta = await PrecioBRUT.find({}).sort({date: -1}).limit(30)
-		console.log(consulta)
+		let consulta = await PrecioBRUT.find({},{valor:1,date:1}).sort({date: -1}).limit(limite)
 		let datos = [];
 
 		for (let index = 0; index < consulta.length; index++) {
@@ -514,8 +520,8 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 	
 	if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
 
-		let consulta = await PrecioBRST.find({}).sort({date: -1}).limit(30)
-		console.log(consulta)
+		let consulta = await PrecioBRST.find({},{valor:1,date:1}).sort({date: -1}).limit(limite)
+
 		let datos = [];
 
 		for (let index = 0; index < consulta.length; index++) {
