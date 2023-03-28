@@ -508,10 +508,9 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 
 		for (let index = 0; index < consulta.length; index++) {
 			let tiempo = (new Date(consulta[index].date)).getTime()
+			let color = {_hex: 5288704}
 			if(consulta[index].valor > 0){
-				let color = {_hex: 11730944}
-			}else{
-				color = {_hex: 5288704}
+				color = {_hex: 11730944}
 			}
 			
 			datos.push({date: tiempo, value: consulta[index].valor, color: color });
@@ -532,10 +531,9 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 
 		for (let index = 0; index < consulta.length; index++) {
 			let tiempo = (new Date(consulta[index].date)).getTime()
+			let color = {_hex: 5288704}
 			if(consulta[index].valor > 0){
-				let color = {_hex: 11730944}
-			}else{
-				color = {_hex: 5288704}
+				color = {_hex: 11730944}
 			}
 			datos.push({date: tiempo, value: consulta[index].valor, color: color });
 			
