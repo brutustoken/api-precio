@@ -513,7 +513,7 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 				color = {_hex: 11730944}
 			}
 			
-			datos.push({date: tiempo, value: consulta[index].valor, color: color });
+			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: {_hex: color}}});
 			
 		}
 		response = {
@@ -535,7 +535,7 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 			if(consulta[index].valor > 0){
 				color = {_hex: 11730944}
 			}
-			datos.push({date: tiempo, value: consulta[index].valor, color: color });
+			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: {_hex: color}}});
 			
 		}
 		response = {
