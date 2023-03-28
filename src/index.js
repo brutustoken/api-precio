@@ -51,6 +51,20 @@ const addressParaenergia = "TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf";
 
 // otra manuel TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf
 
+const colorDown = {
+	r:179,
+	g:0,
+	b:0,
+	_hex: 11730944
+  };
+
+const colorUp = {
+	r:80,
+	g:179,
+	b:0,
+	_hex: 5288704
+  };
+
 var base = "api"
 var version = "v1"
 
@@ -508,12 +522,12 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 
 		for (let index = 0; index < consulta.length; index++) {
 			let tiempo = (new Date(consulta[index].date)).getTime()
-			let color = {_hex: 5288704}
+			let color = colorDown
 			if(consulta[index].valor > 0){
-				color = {_hex: 11730944}
+				color = colorUp
 			}
 			
-			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: {_hex: color}}});
+			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: color}});
 			
 		}
 		response = {
@@ -531,11 +545,11 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 
 		for (let index = 0; index < consulta.length; index++) {
 			let tiempo = (new Date(consulta[index].date)).getTime()
-			let color = {_hex: 5288704}
+			let color = colorDown
 			if(consulta[index].valor > 0){
-				color = {_hex: 11730944}
+				color = colorUp
 			}
-			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: {_hex: color}}});
+			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: color}});
 			
 		}
 		response = {
