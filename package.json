@@ -18,7 +18,7 @@
     "node-cron": "^3.0.2",
     "node-fetch": "^2.6.1",
     "request": "^2.88.2",
-    "tronweb": "^3.2.6"
+    "tronweb": "^5.1.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.6"

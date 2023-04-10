@@ -564,4 +564,37 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 
 });
 
+app.get(URL+'consutla/energia',async(req,res) => {
+
+    let peticion = (req.query.wallets).split(",");
+
+  	var result = {
+		data: 0
+	}
+
+	if ( peticion.length >= 1) {
+
+		const provider_address = peticion;
+
+		var energia = 0;
+		for (let index = 0; index < provider_address.length; index++) {
+			let delegacion = await tronWeb.trx.getCanDelegatedMaxSize(provider_address[index], 'ENERGY')
+			if(delegacion.max_size){
+				energia += delegacion.max_size
+			}
+			
+
+		}
+
+		result.data = energia
+
+		console.log(energia);
+	}
+
+
+
+	res.send(result);
+
+});
+
 app.listen(port, ()=> console.log('Escuchando Puerto: ' + port))
