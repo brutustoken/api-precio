@@ -249,52 +249,7 @@ async function ajusteMoneda(){
 
 	var cuenta = await tronWeb.trx.getAccount();
 	cuenta.balance = cuenta.balance/10**6;
-
 	cuenta.wallet = tronWeb.address.fromHex(cuenta.address);
-	
-	//console.log(cuenta);
-
-	var votos = 0;
-
-	if(cuenta.account_resource.frozen_balance_for_energy.frozen_balance){
-		votos += cuenta.account_resource.frozen_balance_for_energy.frozen_balance;
-	}
-	if(cuenta.account_resource.delegated_frozen_balance_for_energy){
-		votos += cuenta.account_resource.delegated_frozen_balance_for_energy;
-	}
-		
-	if(cuenta.frozen[0].frozen_balance){
-		votos += cuenta.frozen[0].frozen_balance;
-	}
-		
-	if(cuenta.delegated_frozen_balance_for_bandwidth){
-		votos += cuenta.delegated_frozen_balance_for_bandwidth;
-	}
-		
-	votos = parseInt(votos/10**6)
-
-	const contractPool = await tronWeb.contract().at(addressContractPool);
-
-	var trxContract = (await contractPool.TRON_BALANCE().call()).toNumber()/10**6;
-	
-	console.log("---------DISPONIBLE-----------");
-	console.log("Cuenta: "+cuenta.balance+" TRX");
-	console.log("Votos: "+votos+" TRX");
-	var total = cuenta.balance+votos;
-	console.log("Total: "+total+" TRX");
-	console.log("Contrato: "+trxContract+" TRX");
-	var diferencia = (total-trxContract).toFixed(6)
-	console.log("Diferencia: "+diferencia+" TRX");
-
-	console.log("------------------------------");
-	console.log("Wallet ajustes: "+cuenta.wallet);
-	console.log("------------------------------");
-
-	// ajusta las perdidas o ganancias
-	if(diferencia > 0 && true){
-		var tx = await contractPool.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
-		console.log("[Ejecución: ganancia directa "+tx+"]");
-	}
 
 	var recompensas = await tronWeb.trx.getReward(cuenta.address);
 	recompensas = recompensas/10**6;
@@ -306,6 +261,36 @@ async function ajusteMoneda(){
 		const receipt = await tronWeb.trx.sendRawTransaction(signedtxn);
 		console.log("[Transaccion: "+receipt.txid+"]");
 	}
+
+	await delay(3000)
+
+	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
+	trx = await trx.json()
+	trx = trx.data[0]
+
+	const contractPool = await tronWeb.contract().at(addressContractPool);
+	var trxContract = (await contractPool.TRON_BALANCE().call()).toNumber()/10**6;
+	
+	console.log("----------------EJECUCION--------------");
+	console.log("Wallet: "+cuenta.wallet);
+
+	console.log("Disponible: "+cuenta.balance+" TRX");
+	console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
+
+	console.log("Total: "+trx.amount+" TRX");
+	console.log("Contrato: "+trxContract+" TRX");
+	var diferencia = (trx.amount-trxContract).toFixed(6)
+	console.log("Diferencia: "+diferencia+" TRX");
+
+	console.log("------------------------------");
+
+	// ajusta las ganancias ignora las perdidas o retiros
+	if(diferencia > 0 && true){
+		var tx = await contractPool.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
+		console.log("[Ejecución: ganancia directa "+tx+"]");
+	}
+
+	
 
 };
 
