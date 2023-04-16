@@ -21,6 +21,9 @@ const uriMongoDB = process.env.APP_URIMONGODB
 const API_last_BRUT = process.env.APP_GOOGLE_API_BRUT;
 const API_last_BRST = process.env.APP_GOOGLE_API_BRST;
 
+const CAP_BRUT = process.env.APP_GOOGLE_API_CAP_BRUT;
+const CIRC_BRUT = process.env.APP_GOOGLE_API_CIRC_BRUT
+
 const TRONGRID_API = "https://api.trongrid.io";
 const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R1jvVQeq";
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
@@ -581,5 +584,33 @@ app.get(URL+'consutla/energia',async(req,res) => {
 	res.send(result);
 
 });
+
+app.get(URL+'consulta/marketcap/brut', async(req,res)=>{
+
+	let valor = await fetch(CAP_BRUT).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+
+	valor = (valor.values[0][0]).replace('.', '');
+	valor = (valor).replace(',', '.');
+	valor = parseFloat(valor);
+
+	let circulante = await fetch(CIRC_BRUT).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+	circulante = (circulante.values[0][0]).replace('.', '');
+	circulante = (circulante).replace(',', '.');
+	circulante = parseFloat(circulante);
+
+	var result = {
+		token: "BRUT",
+		marketcap:{
+			usdt: valor
+		},
+		circulatingSupply: circulante,
+		totalSupply: 10000
+
+		
+	}
+
+	res.send(result)
+
+})
 
 app.listen(port, ()=> console.log('Escuchando Puerto: ' + port))
