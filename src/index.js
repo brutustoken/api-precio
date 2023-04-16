@@ -339,8 +339,7 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
 		
-		let precio = await fetch(API)
-		.catch(error =>{console.error(error)})
+		let precio = await fetch(API).catch(error =>{console.error(error)})
 		const json = await precio.json();
 
 		precio = (json.values[0][0]).replace(',', '.');
@@ -588,7 +587,7 @@ app.get(URL+'consutla/energia',async(req,res) => {
 app.get(URL+'consulta/marketcap/brut', async(req,res)=>{
 
 	let valor = await fetch(CAP_BRUT).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
-
+	console.log(valor)
 	valor = (valor.values[0][0]).replace('.', '');
 	valor = (valor).replace(',', '.');
 	valor = parseFloat(valor);
