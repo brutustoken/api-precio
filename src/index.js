@@ -363,7 +363,7 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 		let precio = await fetch(API).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 
 		precio = (precio.values[0][0]).replace(',', '.');
-		console.log(precio)
+		//console.log(precio)
 		if(precio == 'Cargando...'){
 			precio = 13;
 
@@ -597,9 +597,11 @@ app.get(URL+'consutla/energia',async(req,res) => {
 
 		}
 
+		//console.log(energia);
+
+
 		result.data = energia
 
-		console.log(energia);
 	}
 
 
@@ -611,7 +613,7 @@ app.get(URL+'consutla/energia',async(req,res) => {
 app.get(URL+'consulta/marketcap/brut', async(req,res)=>{
 
 	let valor = await fetch(CAP_BRUT).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
-	console.log(valor)
+	//console.log(valor)
 	valor = (valor.values[0][0]).replace('.', '');
 	valor = (valor).replace(',', '.');
 	valor = parseFloat(valor);
