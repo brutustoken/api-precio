@@ -42,7 +42,8 @@ const Precios = new Schema({
   par: String,
   valor: Number,
   date: Date,
-  epoch: Number
+  epoch: Number,
+  temporalidad: String
 });
 
 const PrecioBRST = mongoose.model('brst', Precios);
@@ -100,6 +101,19 @@ cron.schedule('*/30 * * * * *', async() => {
 	console.log('=>Done: '+new Date().toLocaleString());
 	
 });
+
+cron.schedule('* */1 * * * *', async() => {
+
+
+	
+});
+
+async function datosBrut() {
+	let precio = await fetch(API)
+	.catch(error =>{console.error(error)})
+	const json = await precio.json();
+
+}
 
 async function upDatePrecio(){
 
@@ -287,10 +301,17 @@ async function ajusteMoneda(){
 
 	console.log("------------------------------");
 
-	// ajusta las ganancias ignora las perdidas o retiros
+	// ajusta las ganancias
 	if(diferencia > 0 && true){
 		var tx = await contractPool.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
-		console.log("[Ejecución: ganancia directa "+tx+"]");
+		console.log("[Ejecución: ganancia directa ("+diferencia+") "+tx+"]");
+	}
+
+	if(diferencia < 0 && true){
+		diferencia = diferencia * -1;
+
+		var tx = await contractPool.restarGanacia(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
+		console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferencia+") -> "+tx+"]");
 	}
 
 	
@@ -339,13 +360,17 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
 		
-		let precio = await fetch(API).catch(error =>{console.error(error)})
-		const json = await precio.json();
+		let precio = await fetch(API).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 
-		precio = (json.values[0][0]).replace(',', '.');
-		precio = parseFloat(precio);
+		precio = (precio.values[0][0]).replace(',', '.');
+		console.log(precio)
+		if(precio == 'Cargando...'){
+			precio = 13;
 
-		//let precio = 12.30;
+		}else{
+			precio = parseFloat(precio);
+
+		}
 
 		let contract = await tronWeb.contract().at(addressContract);
 		let RATE = await contract.RATE().call();
@@ -366,7 +391,6 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 		Pricetrx = precio / Pricetrx.data.trxPrice;
 
 		let variacion = await fetch(API_last_BRUT).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
-		//const json2 = await precio.json();_last_BRUT C8   ||| brst B8
 
 		variacion = (variacion.values[0][0]).replace(',', '.');
 		variacion = parseFloat(variacion);
