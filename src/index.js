@@ -9,6 +9,11 @@ const cron = require('node-cron');
 
 function delay(ms) {return new Promise(res => setTimeout(res, ms));}
 
+var base = "api"
+var version = "v1"
+
+const URL = "/"+base+"/"+version+"/"
+
 const app = express();
 app.use(cors());
 
@@ -69,10 +74,7 @@ const colorUp = {
 	_hex: 5288704
   };
 
-var base = "api"
-var version = "v1"
 
-const URL = "/"+base+"/"+version+"/"
 
 var lastTimeBRUT;
 
