@@ -11,11 +11,11 @@
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
+    "cron": "^2.3.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "mongoose": "^7.0.3",
     "mysql": "^2.18.1",
-    "node-cron": "^3.0.2",
     "node-fetch": "^2.6.1",
     "request": "^2.88.2",
     "tronweb": "^5.1.0"

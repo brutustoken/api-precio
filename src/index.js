@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 
 var cors = require('cors');
 require('dotenv').config();
-const cron = require('node-cron');
+const CronJob = require('cron').CronJob;
 
 function delay(ms) {return new Promise(res => setTimeout(res, ms));}
 
@@ -92,7 +92,7 @@ var tronWeb2 = new TronWeb(
 	PEKEY2
 );
 
-cron.schedule('*/30 * * * * *', async() => {
+var inicio = new CronJob('*/30 * * * * *', async() => {
 	console.log('-----------------------------------');
 	console.log('>Running :'+new Date().toLocaleString());
 	console.log('-----------------------------------');
@@ -104,17 +104,49 @@ cron.schedule('*/30 * * * * *', async() => {
 	
 });
 
-cron.schedule('* */1 * * * *', async() => {
+inicio.start();
 
-
-	
-});
+var datas = new CronJob('0 20 * * *', async function() {
+	await guardarDatos("day");
+	console.log("Datos guardados - Día")
+  }, null, true, 'America/Bogota');
+  
+  datas.start();
 
 async function datosBrut() {
-	let precio = await fetch(API)
-	.catch(error =>{console.error(error)})
-	const json = await precio.json();
+	let precio = await fetch(API).then((r)=>{return r.json()}).catch(error =>{console.error(error)})
+	return precio;
 
+}
+
+async function guardarDatos(temp){
+
+	let consulta = await precioBRUT();
+
+	var instance = new PrecioBRUT({
+		par: "brut-usd",
+		valor: consulta.precio,
+		date: Date.now(),
+		epoch: Date.now(),
+		temporalidad: temp
+		
+	  });
+	
+	  await instance.save({});
+
+		let consulta2 = await precioBRST();
+
+	
+	  var instance2 = new PrecioBRST({
+		par: "brst-trx",
+		valor: consulta2.RATE,
+		date: Date.now(),
+		epoch: Date.now(),
+		temporalidad: temp
+		
+	  });
+	
+	  await instance2.save({});
 }
 
 async function upDatePrecio(){
@@ -321,16 +353,14 @@ async function ajusteMoneda(){
 };
 
 async function actualizarPrecioBRUTContrato() {
-	let precio = await fetch(API)
-	.catch(error =>{console.error(error)})
-	const json = await precio.json();
+	let precio = await fetch(API).then((r)=>{return r.json()}).catch(error =>{console.error(error);})
 
-	precio = json.values[0];
-	precio = precio[1];
+	precio = precio.values[0][0];
+	console.log(precio)
 	precio = precio.replace(',', '.');
 	precio = parseFloat(precio);
 
-	//let precio = 12.92;
+	//let precio = 12.58;
 
 	let contract = await tronWeb.contract().at(addressContract);
 	let RATE = await contract.RATE().call();
@@ -343,26 +373,8 @@ async function actualizarPrecioBRUTContrato() {
 	}
 }
 
-app.get(URL,async(req,res) => {
-
-    res.send("Conectado y funcionando v1.0");
-});
-
-
-app.get(URL+'precio/:moneda',async(req,res) => {
-
-    let moneda = req.params.moneda;
-
-  	var response = {
-		"Ok": false,
-		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
-		"Data": {}
-	}
-
-	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
-
-		
-		let precio = await fetch(API).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+async function precioBRUT(){
+	let precio = await fetch(API).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 
 		precio = (precio.values[0][0]).replace(',', '.');
 		//console.log(precio)
@@ -398,22 +410,12 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 		variacion = parseFloat(variacion);
 
 		variacion = (precio-variacion)/precio;
-		
-		response = {
-			"Ok": true,
-			"Data": {
-				"moneda": "BRUT",
-				"trx": Pricetrx,
-				"usd": precio,
-				"v24h": variacion*100
-			}
-		}
 
-	}
-	
-	if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
+		return {precio: precio, Pricetrx: Pricetrx, variacion: variacion };
+}
 
-		var contractpool = await tronWeb.contract().at(addressContractPool);
+async function precioBRST(){
+	var contractpool = await tronWeb.contract().at(addressContractPool);
 		var RATE = await contractpool.RATE().call();
 		RATE = parseInt(RATE._hex);
 		RATE = RATE/10**6;
@@ -436,13 +438,53 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 
 		variacion = (RATE-variacion)/RATE;
 
+		return {RATE: RATE, variacion: variacion, Price: Price }
+}
+
+app.get(URL,async(req,res) => {
+
+    res.send("Conectado y funcionando v1.0");
+});
+
+
+app.get(URL+'precio/:moneda',async(req,res) => {
+
+    let moneda = req.params.moneda;
+
+  	var response = {
+		"Ok": false,
+		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
+		"Data": {}
+	}
+
+	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
+
+		
+		let consulta = await precioBRUT();
+		
+		response = {
+			"Ok": true,
+			"Data": {
+				"moneda": "BRUT",
+				"trx": consulta.Pricetrx,
+				"usd": consulta.precio,
+				"v24h": consulta.variacion*100
+			}
+		}
+
+	}
+	
+	if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
+
+		let consulta2 = await precioBRST();
+
 		response = {
 				"Ok": true,
 		    	"Data": {
 					"moneda": "BRST",
-		    		"trx": RATE,
-					"usd": Price,
-					"v24h": variacion*100
+		    		"trx": consulta2.RATE,
+					"usd": consulta2.Price,
+					"v24h": consulta2.variacion*100
 
 				}
 		}
