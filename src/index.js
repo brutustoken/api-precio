@@ -51,8 +51,8 @@ const Precios = new Schema({
   temporalidad: String
 });
 
-const PrecioBRST = mongoose.model('brst', Precios);
-const PrecioBRUT = mongoose.model('brut', Precios);
+const PrecioBRST = mongoose.model('brst 2', Precios);
+const PrecioBRUT = mongoose.model('bruts 2', Precios);
 
 const addressParaenergia = "TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf";
 
@@ -377,9 +377,9 @@ async function precioBRUT(){
 	let precio = await fetch(API).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 
 		precio = (precio.values[0][0]).replace(',', '.');
-		//console.log(precio)
+ 
 		if(precio == 'Cargando...'){
-			precio = 13;
+			precio = NaN;
 
 		}else{
 			precio = parseFloat(precio);
@@ -389,11 +389,6 @@ async function precioBRUT(){
 		let contract = await tronWeb.contract().at(addressContract);
 		let RATE = await contract.RATE().call();
 		RATE = parseInt(RATE._hex);
-
-		if(RATE != parseInt(precio*10**6) && false){
-			console.log("actualizando precio BRUT");
-			await actualizarPrecioBRUTContrato();
-		}
 
 		let Pricetrx = await fetch(
 			"https://api.just.network/swap/scan/statusinfo"
@@ -573,16 +568,12 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
 		let consulta = await PrecioBRUT.find({},{valor:1,date:1}).sort({date: -1}).limit(limite)
+
 		let datos = [];
 
 		for (let index = 0; index < consulta.length; index++) {
 			let tiempo = (new Date(consulta[index].date)).getTime()
-			let color = colorDown
-			if(consulta[index].valor > 0){
-				color = colorUp
-			}
-			
-			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: color}});
+			datos.push({date: tiempo, value: consulta[index].valor});
 			
 		}
 		response = {
@@ -594,17 +585,13 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 	
 	if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
 
-		let consulta = await PrecioBRST.find({},{valor:1,date:1}).sort({date: -1}).limit(limite)
+		let consulta = await PrecioBRST.find({},{_id:0,valor:1,date:1}).sort({date: -1}).limit(limite)
 
 		let datos = [];
 
 		for (let index = 0; index < consulta.length; index++) {
-			let tiempo = (new Date(consulta[index].date)).getTime()
-			let color = colorDown
-			if(consulta[index].valor > 0){
-				color = colorUp
-			}
-			datos.push({date: tiempo, value: consulta[index].valor, color: color, strokeSettings: {stroke: color}});
+			let tiempo = (new Date(consulta[index].date)).getTime();
+			datos.push({date: tiempo, value: consulta[index].valor });
 			
 		}
 		response = {
