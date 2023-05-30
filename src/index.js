@@ -34,6 +34,10 @@ const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
 const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
 
+var lastPriceBrut;
+
+precioBRUT();
+
 mongoose.set('strictQuery', false);
 mongoose.connect(uriMongoDB)
 .then(()=>{
@@ -92,7 +96,7 @@ var tronWeb2 = new TronWeb(
 	PEKEY2
 );
 
-var inicio = new CronJob('*/30 * * * * *', async() => {
+var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
 	console.log('>Running :'+new Date().toLocaleString());
 	console.log('-----------------------------------');
@@ -315,14 +319,13 @@ async function ajusteMoneda(){
 
 	await delay(3000)
 
-	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
-	trx = await trx.json()
+	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0").then((r)=>{return r.json()}).catch(console.error)
 	trx = trx.data[0]
 
 	const contractPool = await tronWeb.contract().at(addressContractPool);
 	var trxContract = (await contractPool.TRON_BALANCE().call()).toNumber()/10**6;
 	
-	console.log("----------------EJECUCION--------------");
+	console.log("----------------EJECUCIÓN--------------");
 	console.log("Wallet: "+cuenta.wallet);
 
 	console.log("Disponible: "+cuenta.balance+" TRX");
@@ -377,26 +380,22 @@ async function precioBRUT(){
 	let precio = await fetch(API).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 
 		precio = (precio.values[0][0]).replace(',', '.');
+		precio = parseFloat(precio);
  
-		if(precio == 'Cargando...'){
-			precio = NaN;
-
+		if(isNaN(precio)){
+			precio = lastPriceBrut;
 		}else{
-			precio = parseFloat(precio);
-
+			lastPriceBrut = precio;
 		}
+
+		console.log("Ultimo precio BRUT guardado: "+lastPriceBrut)
 
 		let contract = await tronWeb.contract().at(addressContract);
 		let RATE = await contract.RATE().call();
 		RATE = parseInt(RATE._hex);
 
-		let Pricetrx = await fetch(
-			"https://api.just.network/swap/scan/statusinfo"
-		  ).catch((error) => {
-			console.error(error);
-		  });
-		Pricetrx = await Pricetrx.json();
-		
+		let Pricetrx = await fetch("https://api.just.network/swap/scan/statusinfo").then((res)=>{return res.json()}).catch((error) => {console.error(error);});
+
 		Pricetrx = precio / Pricetrx.data.trxPrice;
 
 		let variacion = await fetch(API_last_BRUT).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
