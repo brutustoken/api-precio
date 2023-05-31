@@ -110,12 +110,28 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 
 inicio.start();
 
-var datas = new CronJob('0 20 * * *', async function() {
+var datas = new CronJob('0 0 20 * * *', async function() {
 	await guardarDatos("day");
 	console.log("Datos guardados - Día")
-  }, null, true, 'America/Bogota');
+}, null, true, 'America/Bogota');
   
-  datas.start();
+datas.start();
+
+var horas = new CronJob('0 0 */1 * * *', async function() {
+	await guardarDatos("hour");
+	console.log("Datos guardados - horas => "+new Date().toLocaleString());
+}, null, true, 'America/Bogota');
+  
+horas.start();
+
+
+//var minutos = new CronJob('0 */1 * * * *', async function() {
+	//await guardarDatos("minute");
+//	console.log("Datos guardando - minutos => "+new Date().toLocaleString());
+
+//}, null, true, 'America/Bogota');
+  
+//minutos.start();
 
 async function datosBrut() {
 	let precio = await fetch(API).then((r)=>{return r.json()}).catch(error =>{console.error(error)})
@@ -125,32 +141,33 @@ async function datosBrut() {
 
 async function guardarDatos(temp){
 
+	let fecha = Date.now();
+
+	let consulta2 = await precioBRST();
+
 	let consulta = await precioBRUT();
 
 	var instance = new PrecioBRUT({
 		par: "brut-usd",
 		valor: consulta.precio,
-		date: Date.now(),
-		epoch: Date.now(),
+		date: fecha,
+		epoch: fecha,
 		temporalidad: temp
 		
-	  });
+	});
 	
-	  await instance.save({});
+	instance.save({});
 
-		let consulta2 = await precioBRST();
-
-	
-	  var instance2 = new PrecioBRST({
+	var instance2 = new PrecioBRST({
 		par: "brst-trx",
 		valor: consulta2.RATE,
-		date: Date.now(),
-		epoch: Date.now(),
+		date: fecha,
+		epoch: fecha,
 		temporalidad: temp
 		
-	  });
+	});
 	
-	  await instance2.save({});
+	instance2.save({});
 }
 
 async function upDatePrecio(){
@@ -388,7 +405,7 @@ async function precioBRUT(){
 			lastPriceBrut = precio;
 		}
 
-		console.log("Ultimo precio BRUT guardado: "+lastPriceBrut)
+		console.log("Ultimo precio guardado: {BRUT: "+lastPriceBrut+"}")
 
 		let contract = await tronWeb.contract().at(addressContract);
 		let RATE = await contract.RATE().call();
