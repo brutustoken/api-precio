@@ -571,12 +571,9 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 	let temporalidad = "day"
 
 	if(req.query){
-		if(req.query.temporalidad){
-			temporalidad = parseInt(req.query.temporalidad)
-		}
 
-		if(req.query.dias){
-			limite = parseInt(req.query.dias)
+		if(req.query.temporalidad){
+			temporalidad = req.query.temporalidad
 		}
 
 		if(req.query.limite){
@@ -592,7 +589,7 @@ app.get(URL+'chartdata/:moneda',async(req,res) => {
 
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
-		let consulta = await PrecioBRUT.find({temporalidad: temporalidad},{valor:1,date:1}).sort({date: -1}).limit(limite)
+		let consulta = await PrecioBRUT.find({ temporalidad: temporalidad },{valor:1,date:1}).sort({date: -1}).limit(limite)
 
 		let datos = [];
 
