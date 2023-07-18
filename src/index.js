@@ -96,7 +96,7 @@ var tronWeb2 = new TronWeb(
 	PEKEY2
 );
 
-var inicio = new CronJob('0 */1 * * * *', async() => {
+var inicio = new CronJob('0 0 */4 * * *', async() => {
 	console.log('-----------------------------------');
 	console.log('>Running :'+new Date().toLocaleString());
 	console.log('-----------------------------------');
@@ -355,13 +355,16 @@ async function ajusteMoneda(){
 
 	console.log("------------------------------");
 
+	var tolerancia = 1; // 1 TRX
+
 	// ajusta las ganancias
-	if(diferencia > 0 && true){
+	if(diferencia > tolerancia && true){
 		var tx = await contractPool.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
 		console.log("[Ejecución: ganancia directa ("+diferencia+") "+tx+"]");
 	}
 
-	if(diferencia < 0 && true){
+	// ajusta las perdidas
+	if(diferencia < tolerancia && true){
 		diferencia = diferencia * -1;
 
 		var tx = await contractPool.restarGanacia(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
