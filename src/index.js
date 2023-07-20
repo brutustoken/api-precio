@@ -364,7 +364,7 @@ async function ajusteMoneda(){
 	}
 
 	// ajusta las perdidas
-	if(diferencia < tolerancia && true){
+	if(diferencia*-1 > tolerancia && true){
 		diferencia = diferencia * -1;
 
 		var tx = await contractPool.restarGanacia(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
