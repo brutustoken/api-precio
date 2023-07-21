@@ -96,7 +96,7 @@ var tronWeb2 = new TronWeb(
 	PEKEY2
 );
 
-var inicio = new CronJob('0 0 */4 * * *', async() => {
+var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
 	console.log('>Running :'+new Date().toLocaleString());
 	console.log('-----------------------------------');
