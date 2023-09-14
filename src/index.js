@@ -82,19 +82,19 @@ const colorUp = {
 
 var lastTimeBRUT;
 
-var tronWeb = new TronWeb(
-	TRONGRID_API,
-	TRONGRID_API,
-	TRONGRID_API,
-	PEKEY
-);
+var tronWeb = new TronWeb({
+	fullHost: TRONGRID_API,
+    headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
+    privateKey: PEKEY
+	
+});
 
-var tronWeb2 = new TronWeb(
-	TRONGRID_API,
-	TRONGRID_API,
-	TRONGRID_API,
-	PEKEY2
-);
+var tronWeb2 = new TronWeb({
+	fullHost: TRONGRID_API,
+    headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
+    privateKey: PEKEY2
+	
+});
 
 var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
@@ -108,29 +108,27 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 	
 });
 
-inicio.start();
+//inicio.start();
 
 var datas = new CronJob('0 0 20 * * *', async function() {
 	await guardarDatos("day");
 	console.log("Datos guardados - Día")
 }, null, true, 'America/Bogota');
   
-datas.start();
+//datas.start();
 
 var horas = new CronJob('0 0 */1 * * *', async function() {
 	await guardarDatos("hour");
 	console.log("Datos guardados - horas => "+new Date().toLocaleString());
 }, null, true, 'America/Bogota');
   
-horas.start();
+//horas.start();
 
 
 //var minutos = new CronJob('0 */1 * * * *', async function() {
 	//await guardarDatos("minute");
 //	console.log("Datos guardando - minutos => "+new Date().toLocaleString());
-
 //}, null, true, 'America/Bogota');
-  
 //minutos.start();
 
 async function datosBrut() {
@@ -341,6 +339,7 @@ async function ajusteMoneda(){
 
 	const contractPool = await tronWeb.contract().at(addressContractPool);
 	var trxContract = (await contractPool.TRON_BALANCE().call()).toNumber()/10**6;
+	var trxContractRetiros = (await contractPool.TRON_PAY_BALANCE().call()).toNumber()/10**6;
 	
 	console.log("----------------EJECUCIÓN--------------");
 	console.log("Wallet: "+cuenta.wallet);
@@ -349,8 +348,9 @@ async function ajusteMoneda(){
 	console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
 
 	console.log("Total: "+trx.amount+" TRX");
-	console.log("Contrato: "+trxContract+" TRX");
-	var diferencia = (trx.amount-trxContract).toFixed(6)
+	console.log("Registro en Contrato: "+trxContract+" TRX");
+	console.log("Contrato-retiros: "+trxContractRetiros+" TRX")
+	var diferencia = ((trx.amount+trxContractRetiros)-trxContract).toFixed(6)
 	console.log("Diferencia: "+diferencia+" TRX");
 
 	console.log("------------------------------");
@@ -458,7 +458,7 @@ async function precioBRST(){
 
 app.get(URL,async(req,res) => {
 
-    res.send("Conectado y funcionando v1.0");
+    res.send({"ok":true});
 });
 
 
@@ -655,8 +655,6 @@ app.get(URL+'consutla/energia',async(req,res) => {
 		}
 
 		//console.log(energia);
-
-
 		result.data = energia
 
 	}
@@ -693,6 +691,38 @@ app.get(URL+'consulta/marketcap/brut', async(req,res)=>{
 
 	res.send(result)
 
+})
+
+app.get(URL+'solicitudes/retiro', async(req,res)=>{
+	var result = { sun_total: 0, trx_total: 0};
+	const contractPool = await tronWeb2.contract().at(addressContractPool);
+
+	var deposits = await contractPool.solicitudesPendientesGlobales().call();
+    var globRetiros = [];
+
+    var tiempo = (await contractPool.TIEMPO().call()).toNumber() * 1000;
+    var diasDeEspera = (tiempo / (86400 * 1000)).toPrecision(2)
+
+    for (let index = 0; index < deposits.length; index++) {
+
+      let solicitud = await contractPool.verSolicitudPendiente(parseInt(deposits[index]._hex)).call();
+	  //console.log(solicitud)
+	  result.sun_total += parseInt(solicitud[2]._hex)
+	  result.trx_total += parseInt(solicitud[2]._hex)/10**6
+	}
+
+	result.dias_espera = diasDeEspera
+	result.solicitudes = deposits.length
+
+	result.sun_en_contrato = await tronWeb.trx.getBalance(addressContractPool);
+
+	result.trx_en_contrato = result.sun_en_contrato/10**6
+
+	result.sun_en_contrato = result.sun_en_contrato.toString(10)
+
+	result.sun_total = result.sun_total.toString(10)
+
+	res.send(result)
 })
 
 app.listen(port, ()=> console.log('Escuchando Puerto: ' + port))
