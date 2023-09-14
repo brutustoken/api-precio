@@ -108,7 +108,7 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 	
 });
 
-//inicio.start();
+inicio.start();
 
 var datas = new CronJob('0 0 20 * * *', async function() {
 	await guardarDatos("day");
@@ -347,10 +347,12 @@ async function ajusteMoneda(){
 	console.log("Disponible: "+cuenta.balance+" TRX");
 	console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
 
-	console.log("Total: "+trx.amount+" TRX");
+	var total = (parseFloat(trx.amount)+trxContractRetiros)
+	console.log("Total: "+total+" TRX");
 	console.log("Registro en Contrato: "+trxContract+" TRX");
 	console.log("Contrato-retiros: "+trxContractRetiros+" TRX")
-	var diferencia = ((trx.amount+trxContractRetiros)-trxContract).toFixed(6)
+
+	var diferencia = (total-trxContract).toFixed(6)
 	console.log("Diferencia: "+diferencia+" TRX");
 
 	console.log("------------------------------");
