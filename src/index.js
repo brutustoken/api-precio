@@ -34,6 +34,8 @@ const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
 const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
 
+const develop = process.env.APP_develop || false;
+
 var lastPriceBrut;
 
 precioBRUT();
@@ -110,26 +112,33 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 
 inicio.start();
 
-var datas = new CronJob('0 0 20 * * *', async function() {
-	await guardarDatos("day");
-	console.log("Datos guardados - Día")
-}, null, true, 'America/Bogota');
-  
-//datas.start();
+if(develop){
+	var dias = new CronJob('0 0 20 * * *', async function() {
+		await guardarDatos("day");
+		console.log("Datos guardados - Día")
+	}, null, true, 'America/Bogota');
+	  
+	dias.start();
 
-var horas = new CronJob('0 0 */1 * * *', async function() {
-	await guardarDatos("hour");
-	console.log("Datos guardados - horas => "+new Date().toLocaleString());
-}, null, true, 'America/Bogota');
-  
-//horas.start();
+	var horas = new CronJob('0 0 */1 * * *', async function() {
+		await guardarDatos("hour");
+		console.log("Datos guardados - horas => "+new Date().toLocaleString());
+	}, null, true, 'America/Bogota');
+	
+	  
+	horas.start();
 
 
-//var minutos = new CronJob('0 */1 * * * *', async function() {
+	//var minutos = new CronJob('0 */1 * * * *', async function() {
 	//await guardarDatos("minute");
-//	console.log("Datos guardando - minutos => "+new Date().toLocaleString());
-//}, null, true, 'America/Bogota');
-//minutos.start();
+	//	console.log("Datos guardando - minutos => "+new Date().toLocaleString());
+	//}, null, true, 'America/Bogota');
+	//minutos.start();
+
+}
+
+
+
 
 async function datosBrut() {
 	let precio = await fetch(API).then((r)=>{return r.json()}).catch(error =>{console.error(error)})
@@ -449,11 +458,16 @@ async function precioBRST(){
 		Price = parseInt(Price*10**6);
 		Price = Price/10**6;
 
-		let variacion = await fetch(API_last_BRST).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+		/*let variacion = await fetch(API_last_BRST).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 		variacion = (variacion.values[0][0]).replace(',', '.');
 		variacion = parseFloat(variacion);
 
-		variacion = (RATE-variacion)/RATE;
+		variacion = (RATE-variacion)/RATE;*/
+
+		let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=hour&limite=24").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+		consulta3 = consulta3.Data
+		console.log(consulta3)
+		let variacion = (consulta3[0].value-consulta3[23].value)/((consulta3[0].value+consulta3[23].value)/2)
 
 		return {RATE: RATE, variacion: variacion, Price: Price }
 }
@@ -501,7 +515,9 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 					"moneda": "BRST",
 		    		"trx": consulta2.RATE,
 					"usd": consulta2.Price,
-					"v24h": consulta2.variacion*100
+					"v24h": consulta2.variacion*100,
+					"IS": (consulta2.variacion*360)*100,
+					"APY": ((1+(consulta2.variacion*360)/360)**360-1)*100
 
 				}
 		}
