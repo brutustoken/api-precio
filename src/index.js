@@ -34,7 +34,7 @@ const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
 const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
 
-const develop = process.env.APP_develop || false;
+const develop = process.env.APP_develop || "false";
 
 var lastPriceBrut;
 
@@ -112,7 +112,8 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 
 inicio.start();
 
-if(develop){
+if(develop === "false"){
+	console.log("entro")
 	var dias = new CronJob('0 0 20 * * *', async function() {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
