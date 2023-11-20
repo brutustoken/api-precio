@@ -113,7 +113,7 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 inicio.start();
 
 if(develop === "false"){
-	console.log("entro")
+	//console.log("entro")
 	var dias = new CronJob('0 0 20 * * *', async function() {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
@@ -392,7 +392,7 @@ async function actualizarPrecioBRUTContrato() {
 	let precio = await fetch(API).then((r)=>{return r.json()}).catch(error =>{console.error(error);})
 
 	precio = precio.values[0][0];
-	console.log(precio)
+	//console.log(precio)
 	precio = precio.replace(',', '.');
 	precio = parseFloat(precio);
 
@@ -467,10 +467,16 @@ async function precioBRST(){
 
 		let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=hour&limite=24").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 		consulta3 = consulta3.Data
-		console.log(consulta3)
+		//console.log(consulta3)
 		let variacion = (consulta3[0].value-consulta3[23].value)/((consulta3[0].value+consulta3[23].value)/2)
 
-		return {RATE: RATE, variacion: variacion, Price: Price }
+
+		let consulta4 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=365").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+		consulta4 = consulta4.Data
+		//console.log(consulta4)
+		let APY = (consulta4[0].value-consulta4[364].value)/((consulta4[364].value)*1)
+
+		return {RATE: RATE, variacion: variacion, Price: Price, APY:APY }
 }
 
 app.get(URL,async(req,res) => {
@@ -518,7 +524,8 @@ app.get(URL+'precio/:moneda',async(req,res) => {
 					"usd": consulta2.Price,
 					"v24h": consulta2.variacion*100,
 					"IS": (consulta2.variacion*360)*100,
-					"APY": ((1+(consulta2.variacion*360)/360)**360-1)*100
+					"APY": ((1+(consulta2.variacion*360)/360)**360-1)*100,
+					"lastAPY":consulta2.APY*100
 
 				}
 		}
