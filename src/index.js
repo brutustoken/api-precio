@@ -2,6 +2,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const TronWeb = require('tronweb');
 const mongoose = require('mongoose');
+const BigNumber = require('bignumber.js');
 
 var cors = require('cors');
 require('dotenv').config();
@@ -109,8 +110,12 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('=>Done: '+new Date().toLocaleString());
 	
 });
-
 inicio.start();
+
+var revisionContrato = new CronJob('0 0 */1 * * *', async function() {
+	retirarTrxContrato()
+}, null, true, 'America/Bogota');
+revisionContrato.start();
 
 if(develop === "false"){
 	//console.log("entro")
@@ -136,6 +141,8 @@ if(develop === "false"){
 	//}, null, true, 'America/Bogota');
 	//minutos.start();
 
+}else{
+	
 }
 
 
@@ -176,6 +183,29 @@ async function guardarDatos(temp){
 	});
 	
 	instance2.save({});
+}
+
+async function retirarTrxContrato() {
+
+	var cuenta = await tronWeb.trx.getAccount(addressContractPool);
+	
+	let contract = await tronWeb.contract().at(addressContractPool); //TRX_BRST
+
+	let trxSolicitado = await contract.TRON_SOLICITADO().call();
+	trxSolicitado = parseInt(trxSolicitado._hex);
+
+	trxSolicitado = new BigNumber(trxSolicitado)
+	var balance = new BigNumber(cuenta.balance)
+
+	var trxRemanente = 1*10**6;
+
+	trxSolicitado = trxSolicitado.plus(trxRemanente)
+
+	if(balance.gt(trxSolicitado)){
+		var tx = await contract.redimTRX(balance.minus(trxSolicitado).toString(10)).send();
+		console.log("https://tronscan.io/#/transaction/"+tx)
+	}
+
 }
 
 async function upDatePrecio(){
