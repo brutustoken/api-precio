@@ -804,8 +804,7 @@ app.get(URL+'solicitudes/p2p/venta', async(req,res)=>{
 	  
 	}
 
-	result.globRetiros = globRetiros
-
+	result.Data = globRetiros
 
 	res.send(result)
 })
