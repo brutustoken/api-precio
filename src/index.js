@@ -495,16 +495,13 @@ async function precioBRST(){
 
 		variacion = (RATE-variacion)/RATE;*/
 
-		let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=hour&limite=24").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
+		let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=2").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 		consulta3 = consulta3.Data
 		//console.log(consulta3)
-		let variacion = (consulta3[0].value-consulta3[23].value)/(consulta3[23].value)
+		let variacion = (consulta3[0].value-consulta3[1].value)/(consulta3[1].value)
 
 
-		let consulta4 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=365").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
-		consulta4 = consulta4.Data
-		//console.log(consulta4)
-		let APY = (consulta4[0].value-consulta4[364].value)/((consulta4[364].value)*1)
+		let APY = variacion*360
 
 		return {RATE: RATE, variacion: variacion, Price: Price, APY:APY }
 }
