@@ -449,9 +449,9 @@ async function precioBRUT(){
 			precio = lastPriceBrut;
 		}else{
 			lastPriceBrut = precio;
-		}
-
 		console.log("Ultimo precio guardado: {BRUT: "+lastPriceBrut+"}")
+
+		}
 
 		let contract = await tronWeb.contract().at(addressContract);
 		let RATE = await contract.RATE().call();
@@ -498,7 +498,7 @@ async function precioBRST(){
 		let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=hour&limite=24").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
 		consulta3 = consulta3.Data
 		//console.log(consulta3)
-		let variacion = (consulta3[0].value-consulta3[23].value)/((consulta3[0].value+consulta3[23].value)/2)
+		let variacion = (consulta3[0].value-consulta3[23].value)/(consulta3[23].value)
 
 
 		let consulta4 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=365").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
