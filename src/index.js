@@ -362,7 +362,7 @@ async function ajusteMoneda(){
 	var recompensas = await tronWeb.trx.getReward(cuenta.address);
 	recompensas = recompensas/10**6;
 
-	if (true && Date.now() > cuenta.latest_withdraw_time+(( 82800 + 86400)*1000) && recompensas > 0) {
+	if (true && Date.now() > cuenta.latest_withdraw_time+(86400*1000) && recompensas > 0) {
 		console.log("[Reclamando recompensa: "+(Date.now() > cuenta.latest_withdraw_time+86400000)+"]");
 		const tradeobj = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 1);
 		const signedtxn = await tronWeb.trx.sign(tradeobj, PEKEY);
