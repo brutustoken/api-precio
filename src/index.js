@@ -113,7 +113,7 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 inicio.start();
 
 var revisionContrato = new CronJob('0 0 */1 * * *', async function() {
-	retirarTrxContrato()
+	retirarTrxContrato() // contrato de retiros TRX_BRST
 }, null, true, 'America/Bogota');
 revisionContrato.start();
 
@@ -144,8 +144,6 @@ if(develop === "false"){
 }else{
 	
 }
-
-
 
 
 async function datosBrut() {
@@ -275,14 +273,14 @@ async function upDatePrecio(){
 	}
 	
 	// Reclamar recompensas cada dia y asignarlo a las ganancias
-	if (true && hoy > cuenta.latest_withdraw_time+86400000 && recompensas > 0) {
+	if (false && hoy > cuenta.latest_withdraw_time+86400000 && recompensas > 0) {
 		console.log("[Reclamando recompensa: "+(hoy > cuenta.latest_withdraw_time+86400000)+"]");
 		const tradeobj = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 1);
 		const signedtxn = await tronWeb.trx.sign(tradeobj, PERKSA);
 		const receipt = await tronWeb.trx.sendRawTransaction(signedtxn);
 		console.log("[Transaccion: "+receipt.txid+"]");
 
-		if(true){
+		if(false){
 			const contractPool = await tronWeb.contract().at(addressPool);
 			var tx = await contractPool.gananciaDirecta(tronWeb.toSun(recompensas)).send();
 			console.log("[Ganancia Directa Contrato: "+tx+"]");
@@ -294,7 +292,7 @@ async function upDatePrecio(){
 	cuenta.balance = cuenta.balance/10**6;
 
 	// se congela todo el saldo a la cuenta principal por energia
-	if (true && cuenta.balance > 1) {
+	if (false && cuenta.balance > 1) {
 		console.log("[Congelando disponible: "+(parseInt(cuenta.balance))+" => "+(cuenta.balance > 1)+"]");
 		var toFreez = tronWeb.toSun(parseInt(cuenta.balance));
 		const tradeobj = await tronWeb.transactionBuilder.freezeBalance(toFreez, 3, "ENERGY", cuenta.address, addressParaenergia, 1)
@@ -364,7 +362,7 @@ async function ajusteMoneda(){
 	var recompensas = await tronWeb.trx.getReward(cuenta.address);
 	recompensas = recompensas/10**6;
 
-	if (true && Date.now() > cuenta.latest_withdraw_time+86400000 && recompensas > 0) {
+	if (true && Date.now() > cuenta.latest_withdraw_time+(( 82800 + 86400)*1000) && recompensas > 0) {
 		console.log("[Reclamando recompensa: "+(Date.now() > cuenta.latest_withdraw_time+86400000)+"]");
 		const tradeobj = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 1);
 		const signedtxn = await tronWeb.trx.sign(tradeobj, PEKEY);
