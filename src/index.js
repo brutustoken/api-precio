@@ -702,15 +702,11 @@ app.get(URL+'consutla/energia',async(req,res) => {
 				energia += delegacion.max_size
 			}
 			
-
 		}
 
-		//console.log(energia);
 		result.data = energia
 
 	}
-
-
 
 	res.send(result);
 
@@ -736,7 +732,6 @@ app.get(URL+'consulta/marketcap/brut', async(req,res)=>{
 		},
 		circulatingSupply: circulante,
 		totalSupply: 10000
-
 		
 	}
 
