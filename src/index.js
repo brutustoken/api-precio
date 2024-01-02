@@ -1,3 +1,4 @@
+const abi_POOLBRST = require("./abi/PoolBRSTv4");
 const express = require('express');
 const fetch = require('node-fetch');
 const TronWeb = require('tronweb');
@@ -19,8 +20,6 @@ const app = express();
 app.use(cors());
 
 const port = process.env.PORT || 3004;
-const PEKEY = process.env.APP_PRIVATEKEY;
-const PEKEY2 = process.env.APP_PRIVATEKEY2;
 const API = process.env.APP_GOOGLE_API;
 const uriMongoDB = process.env.APP_URIMONGODB
 
@@ -34,6 +33,8 @@ const TRONGRID_API = "https://api.trongrid.io";
 const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R1jvVQeq";
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
 const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
+
+const addressContractPoolProxy = process.env.APP_CONTRACT_POOL_PROXY || "TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55";
 
 const develop = process.env.APP_develop || "false";
 
@@ -64,40 +65,34 @@ const PrecioBRUT = mongoose.model('bruts 2', Precios);
 const addressParaenergia = "TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf";
 
 // BRST TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY
-
 // otra manuel TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf
-
-const colorDown = {
-	r:179,
-	g:0,
-	b:0,
-	_hex: 11730944
-  };
-
-const colorUp = {
-	r:80,
-	g:179,
-	b:0,
-	_hex: 5288704
-  };
-
-
 
 var lastTimeBRUT;
 
 var tronWeb = new TronWeb({
 	fullHost: TRONGRID_API,
     headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
-    privateKey: PEKEY
+    privateKey: process.env.APP_PRIVATEKEY
 	
 });
 
 var tronWeb2 = new TronWeb({
 	fullHost: TRONGRID_API,
     headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
-    privateKey: PEKEY2
+    privateKey: process.env.APP_PRIVATEKEY2
 	
 });
+
+var tronWeb3 = new TronWeb({
+	fullHost: TRONGRID_API,
+    headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
+    privateKey: process.env.APP_PRIVATEKEY3
+	
+});
+
+let contract_POOL_PROXY = {}
+
+contract_POOL_PROXY = tronWeb3.contract(abi_POOLBRST,addressContractPoolProxy)
 
 var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
@@ -105,7 +100,8 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
   	//await upDatePrecio(); lo hace el de telegram
 	await comprarBRST();
-	await ajusteMoneda();
+	//await ajusteMoneda();
+	calculoBRST();
 	await actualizarPrecioBRUTContrato();
 	console.log('=>Done: '+new Date().toLocaleString());
 	
@@ -409,6 +405,62 @@ async function ajusteMoneda(){
 
 		let calculo = parseInt(diferencia*10**6);
 		let tx = await contractPool.asignarPerdida(calculo).send().catch((err)=>{console.log(err)});
+		console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferencia+") -> "+calculo+" | "+tx+" ]");
+	}
+
+	
+
+};
+
+async function calculoBRST(){
+
+	var balance = await tronWeb3.trx.getUnconfirmedBalance("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
+	balance = new BigNumber(balance).shiftedBy(-6);
+	
+	var accountMaster = await tronWeb3.trx.getAccount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY")
+	console.log(accountMaster)
+
+	console.log(accountMaster.unfrozenV2[0].unfreeze_amount+delegated_frozenV2_balance_for_bandwidth+votes[0].vote_count)
+
+	var account = await tronWeb3.trx.getAccount()
+	account.wallet = tronWeb.address.fromHex(account.address);
+
+	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0").then((r)=>{return r.json()}).catch(console.error)
+	trx = trx.data[0]
+
+	var trxContract = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber()/10**6;
+	var trxContractRetiros = (await contract_POOL_PROXY.TRON_PAY_BALANCE().call()).toNumber()/10**6;
+	
+	console.log("-------------- EJECUCIÓN V4 ------------");
+	console.log("Ejecutor: "+account.wallet);
+
+	console.log("Disponible: "+balance+" TRX");
+	console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
+
+	var total = (parseFloat(trx.amount)+trxContractRetiros)
+	console.log("Total: "+total+" TRX");
+	console.log("Registro en Contrato: "+trxContract+" TRX");
+	console.log("Contrato-retiros: "+trxContractRetiros+" TRX")
+
+	var diferencia = (total-trxContract).toFixed(6)
+	console.log("Diferencia: "+diferencia+" TRX");
+
+	console.log("------------------------------");
+
+	var tolerancia = 1; // 1 TRX
+
+	// ajusta las ganancias
+	if(diferencia > tolerancia && false){
+		var tx = await contract_POOL_PROXY.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
+		console.log("[Ejecución: ganancia directa ("+diferencia+") "+tx+"]");
+	}
+
+	// ajusta las perdidas
+	if(diferencia*-1 > tolerancia && false){
+		diferencia = diferencia * -1;
+
+		let calculo = parseInt(diferencia*10**6);
+		let tx = await contract_POOL_PROXY.asignarPerdida(calculo).send().catch((err)=>{console.log(err)});
 		console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferencia+") -> "+calculo+" | "+tx+" ]");
 	}
 
