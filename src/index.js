@@ -91,8 +91,16 @@ var tronWeb3 = new TronWeb({
 });
 
 let contract_POOL_PROXY = {}
-
 contract_POOL_PROXY = tronWeb3.contract(abi_POOLBRST,addressContractPoolProxy)
+
+let contract_Pool = {}
+
+tronWeb3.contract().at(addressContractPool)
+.then((r)=>{
+	contract_Pool = r
+	console.log("pool v3 conected")
+})
+
 
 var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
@@ -417,54 +425,69 @@ async function calculoBRST(){
 	var balance = await tronWeb3.trx.getUnconfirmedBalance("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
 	balance = new BigNumber(balance).shiftedBy(-6);
 	
-	var accountMaster = await tronWeb3.trx.getAccount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY")
-	console.log(accountMaster)
-
-	console.log(accountMaster.unfrozenV2[0].unfreeze_amount+delegated_frozenV2_balance_for_bandwidth+votes[0].vote_count)
-
 	var account = await tronWeb3.trx.getAccount()
 	account.wallet = tronWeb.address.fromHex(account.address);
 
-	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0").then((r)=>{return r.json()}).catch(console.error)
-	trx = trx.data[0]
+	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
+	.then((r)=>{return r.json()})
+	.then((r)=>{return r.data[0]})
+	.catch(console.error)
 
-	var trxContract = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber()/10**6;
-	var trxContractRetiros = (await contract_POOL_PROXY.TRON_PAY_BALANCE().call()).toNumber()/10**6;
+	var trxContract = (await contract_Pool.TRON_BALANCE().call()).toNumber()/10**6;
+	var trxContractRetiros = (await contract_Pool.TRON_PAY_BALANCE().call()).toNumber()/10**6;
+
+	var trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber()/10**6;
+	var trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
+	trxContractRetirosV4 = new BigNumber(trxContractRetirosV4).shiftedBy(-6);
 	
 	console.log("-------------- EJECUCIÓN V4 ------------");
 	console.log("Ejecutor: "+account.wallet);
-
+	console.log(" ")
 	console.log("Disponible: "+balance+" TRX");
 	console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
-
-	var total = (parseFloat(trx.amount)+trxContractRetiros)
+	console.log(" ")
+	console.log("Para retiros v3: "+trxContractRetiros+" TRX")
+	console.log("Para retiros v4: "+trxContractRetirosV4+" TRX")
+	console.log(" ")
+	var total = (parseFloat(trx.amount)+parseFloat(trxContractRetiros)+parseFloat(trxContractRetirosV4))
 	console.log("Total: "+total+" TRX");
-	console.log("Registro en Contrato: "+trxContract+" TRX");
-	console.log("Contrato-retiros: "+trxContractRetiros+" TRX")
+	console.log(" ")
+	console.log("Registro en Contrato V3: "+trxContract+" TRX");
+	console.log("Registro en Contrato V4: "+trxContractV4+" TRX");
+	console.log(" ")
 
 	var diferencia = (total-trxContract).toFixed(6)
-	console.log("Diferencia: "+diferencia+" TRX");
+	console.log("Diferencia V3: "+diferencia+" TRX");
+	console.log(" ")
+	var diferenciaV4 = (total-trxContractV4).toFixed(6)
+	console.log("Diferencia V4: "+diferenciaV4+" TRX");
 
 	console.log("------------------------------");
 
 	var tolerancia = 1; // 1 TRX
 
 	// ajusta las ganancias
-	if(diferencia > tolerancia && false){
-		var tx = await contract_POOL_PROXY.gananciaDirecta(parseInt(diferencia*10**6)).send().catch((err)=>{console.log(err)});
-		console.log("[Ejecución: ganancia directa ("+diferencia+") "+tx+"]");
+	if(diferenciaV4 > tolerancia && true){
+		await contract_POOL_PROXY.gananciaDirecta(parseInt(diferenciaV4*10**6)).send()
+		.then((h)=>{
+			console.log("[Ejecución: ganancia directa ("+diferenciaV4+") "+h+"]");
+
+		})
+		.catch((err)=>{console.log(err)});
 	}
 
 	// ajusta las perdidas
-	if(diferencia*-1 > tolerancia && false){
-		diferencia = diferencia * -1;
+	if(diferenciaV4*-1 > tolerancia && true){
+		diferenciaV4 = diferenciaV4 * -1;
 
-		let calculo = parseInt(diferencia*10**6);
-		let tx = await contract_POOL_PROXY.asignarPerdida(calculo).send().catch((err)=>{console.log(err)});
-		console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferencia+") -> "+calculo+" | "+tx+" ]");
+		let calculo = parseInt(diferenciaV4*10**6);
+		await contract_POOL_PROXY.asignarPerdida(calculo).send()
+		.then((h)=>{
+			console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferenciaV4+") -> "+calculo+" | "+h+" ]");
+		})
+		.catch((err)=>{console.log(err)})
+		
 	}
-
-	
 
 };
 
