@@ -416,8 +416,6 @@ async function ajusteMoneda(){
 		console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferencia+") -> "+calculo+" | "+tx+" ]");
 	}
 
-	
-
 };
 
 async function calculoBRST(){
@@ -431,62 +429,68 @@ async function calculoBRST(){
 	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
 	.then((r)=>{return r.json()})
 	.then((r)=>{return r.data[0]})
-	.catch(console.error)
+	.catch((e)=>{console.error(e); return false})
 
-	var trxContract = (await contract_Pool.TRON_BALANCE().call()).toNumber()/10**6;
-	var trxContractRetiros = (await contract_Pool.TRON_PAY_BALANCE().call()).toNumber()/10**6;
+	if(trx){
+		//console.log(trx)
 
-	var trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber()/10**6;
-	var trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
-	trxContractRetirosV4 = new BigNumber(trxContractRetirosV4).shiftedBy(-6);
-	
-	console.log("-------------- EJECUCIÓN V4 ------------");
-	console.log("Ejecutor: "+account.wallet);
-	console.log(" ")
-	console.log("Disponible: "+balance+" TRX");
-	console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
-	console.log(" ")
-	console.log("Para retiros v3: "+trxContractRetiros+" TRX")
-	console.log("Para retiros v4: "+trxContractRetirosV4+" TRX")
-	console.log(" ")
-	var total = (parseFloat(trx.amount)+parseFloat(trxContractRetiros)+parseFloat(trxContractRetirosV4))
-	console.log("Total: "+total+" TRX");
-	console.log(" ")
-	console.log("Registro en Contrato V3: "+trxContract+" TRX");
-	console.log("Registro en Contrato V4: "+trxContractV4+" TRX");
-	console.log(" ")
+		var trxContract = (await contract_Pool.TRON_BALANCE().call()).toNumber()/10**6;
+		var trxContractRetiros = (await contract_Pool.TRON_PAY_BALANCE().call()).toNumber()/10**6;
 
-	var diferencia = (total-trxContract).toFixed(6)
-	console.log("Diferencia V3: "+diferencia+" TRX");
-	console.log(" ")
-	var diferenciaV4 = (total-trxContractV4).toFixed(6)
-	console.log("Diferencia V4: "+diferenciaV4+" TRX");
-
-	console.log("------------------------------");
-
-	var tolerancia = 1; // 1 TRX
-
-	// ajusta las ganancias
-	if(diferenciaV4 > tolerancia && true){
-		await contract_POOL_PROXY.gananciaDirecta(parseInt(diferenciaV4*10**6)).send()
-		.then((h)=>{
-			console.log("[Ejecución: ganancia directa ("+diferenciaV4+") "+h+"]");
-
-		})
-		.catch((err)=>{console.log(err)});
-	}
-
-	// ajusta las perdidas
-	if(diferenciaV4*-1 > tolerancia && true){
-		diferenciaV4 = diferenciaV4 * -1;
-
-		let calculo = parseInt(diferenciaV4*10**6);
-		await contract_POOL_PROXY.asignarPerdida(calculo).send()
-		.then((h)=>{
-			console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferenciaV4+") -> "+calculo+" | "+h+" ]");
-		})
-		.catch((err)=>{console.log(err)})
+		var trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber()/10**6;
+		var trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
+		trxContractRetirosV4 = new BigNumber(trxContractRetirosV4).shiftedBy(-6);
 		
+		console.log("-------------- EJECUCIÓN V4 ------------");
+		console.log("Ejecutor: "+account.wallet);
+		console.log(" ")
+		console.log("Disponible: "+balance+" TRX");
+		console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
+		console.log(" ")
+		console.log("Para retiros v3: "+trxContractRetiros+" TRX")
+		console.log("Para retiros v4: "+trxContractRetirosV4+" TRX")
+		console.log(" ")
+		var total = (parseFloat(trx.amount)+parseFloat(trxContractRetiros)+parseFloat(trxContractRetirosV4))
+		console.log("Total: "+total+" TRX");
+		console.log(" ")
+		console.log("Registro en Contrato V3: "+trxContract+" TRX");
+		console.log("Registro en Contrato V4: "+trxContractV4+" TRX");
+		console.log(" ")
+
+		var diferencia = (total-trxContract).toFixed(6)
+		console.log("Diferencia V3: "+diferencia+" TRX");
+		console.log(" ")
+		var diferenciaV4 = (total-trxContractV4).toFixed(6)
+		console.log("Diferencia V4: "+diferenciaV4+" TRX");
+
+		console.log("------------------------------");
+
+		var tolerancia = 1; // 1 TRX
+
+		// ajusta las ganancias
+		if(diferenciaV4 > tolerancia && true){
+			await contract_POOL_PROXY.gananciaDirecta(parseInt(diferenciaV4*10**6)).send()
+			.then((h)=>{
+				console.log("[Ejecución: ganancia directa ("+diferenciaV4+") "+h+"]");
+
+			})
+			.catch((err)=>{console.log(err)});
+		}
+
+		// ajusta las perdidas
+		if(diferenciaV4*-1 > tolerancia && true){
+			diferenciaV4 = diferenciaV4 * -1;
+
+			let calculo = parseInt(diferenciaV4*10**6);
+			await contract_POOL_PROXY.asignarPerdida(calculo).send()
+			.then((h)=>{
+				console.log("[Ejecución: Ajuste diferencia Negativa (-"+diferenciaV4+") -> "+calculo+" | "+h+" ]");
+			})
+			.catch((err)=>{console.log(err)})
+			
+		}
+	}else{
+		console.log("error consulta trx")
 	}
 
 };
