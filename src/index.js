@@ -29,6 +29,8 @@ const API_last_BRST = process.env.APP_GOOGLE_API_BRST;
 const CAP_BRUT = process.env.APP_GOOGLE_API_CAP_BRUT;
 const CIRC_BRUT = process.env.APP_GOOGLE_API_CIRC_BRUT
 
+
+const WALLET_SR = "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY";
 const TRONGRID_API = "https://api.trongrid.io";
 const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R1jvVQeq";
 const addressContractPool = process.env.APP_CONTRACT_POOL || "TMzxRLeBwfhm8miqm5v2qPw3P8rVZUa3x6";
@@ -63,9 +65,6 @@ const PrecioBRST = mongoose.model('brst 2', Precios);
 const PrecioBRUT = mongoose.model('bruts 2', Precios);
 
 const addressParaenergia = "TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf";
-
-// BRST TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY
-// otra manuel TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf
 
 var lastTimeBRUT;
 
@@ -426,7 +425,7 @@ async function calculoBRST(){
 	var recompensas = await tronWeb.trx.getReward(cuenta.address);
 	recompensas = new BigNumber(recompensas).shiftedBy(-6);
 
-	var permTiempo = ( Date.now() >= 1704758400000 ) && (Date.now() > cuenta.latest_withdraw_time+(86400*1000))
+	var permTiempo = ( Date.now() >= 1704765600000 ) && (Date.now() > cuenta.latest_withdraw_time+(86400*1000))
 
 	if (true && permTiempo && recompensas > 0) {
 		console.log("[Reclamando recompensa: "+permTiempo+"]");
@@ -438,13 +437,13 @@ async function calculoBRST(){
 
 	await delay(3000)
 
-	var balance = await tronWeb3.trx.getUnconfirmedBalance("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
+	var balance = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
 	balance = new BigNumber(balance).shiftedBy(-6);
 	
 	var account = await tronWeb3.trx.getAccount()
 	account.wallet = tronWeb.address.fromHex(account.address);
 
-	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
+	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address="+WALLET_SR+"&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
 	.then((r)=>{return r.json()})
 	.then((r)=>{return r.data[0]})
 	.catch((e)=>{console.error(e); return false})
@@ -461,6 +460,7 @@ async function calculoBRST(){
 		
 		console.log("-------------- EJECUCIÓN V4 ------------");
 		console.log("Ejecutor: "+account.wallet);
+		console.log("Wallet SR: "+WALLET_SR);
 		console.log(" ")
 		console.log("Disponible: "+balance+" TRX");
 		console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
@@ -567,34 +567,31 @@ async function precioBRUT(){
 }
 
 async function precioBRST(){
-	var contractpool = await tronWeb.contract().at(addressContractPool);
-		var RATE = await contractpool.RATE().call();
-		RATE = parseInt(RATE._hex);
-		RATE = RATE/10**6;
+	
+		var RATE = await contract_POOL_PROXY.RATE().call();
+		RATE = new BigNumber(RATE.toNumber()).shiftedBy(-6)
 
-		let consulta = await fetch(
-			"https://api.just.network/swap/scan/statusinfo"
-		  ).catch((error) => {
+		let json = await fetch("https://api.just.network/swap/scan/statusinfo")
+		.then((r)=>{return r.json()})
+		.catch((error) => {
 			console.error(error);
-		  });
-		var json = await consulta.json();
+		});
 		
-		var Price = RATE * json.data.trxPrice;
+		var Price = new BigNumber(json.data.trxPrice).times(RATE);
 
 		Price = parseInt(Price*10**6);
 		Price = Price/10**6;
 
-		/*let variacion = await fetch(API_last_BRST).then((res)=>{return res.json()}).catch(error =>{console.error(error)})
-		variacion = (variacion.values[0][0]).replace(',', '.');
-		variacion = parseFloat(variacion);
+		let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=2")
+		.then((r)=>{return r.json()})
+		.then((r)=>{return r.Data})
+		.catch(error =>{
+			console.error(error);
+			return false;
+		})
 
-		variacion = (RATE-variacion)/RATE;*/
-
-		let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=2").then((res)=>{return res.json()}).catch(error =>{console.error(error)})
-		consulta3 = consulta3.Data
 		//console.log(consulta3)
 		let variacion = (consulta3[0].value-consulta3[1].value)/(consulta3[1].value)
-
 
 		let APY = variacion*360
 
