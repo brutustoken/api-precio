@@ -90,11 +90,12 @@ var tronWeb3 = new TronWeb({
 	
 });
 
+
 let contract_POOL_PROXY = {}
 contract_POOL_PROXY = tronWeb3.contract(abi_POOLBRST,addressContractPoolProxy)
 
-let contract_Pool = {}
 
+let contract_Pool = {}
 tronWeb3.contract().at(addressContractPool)
 .then((r)=>{
 	contract_Pool = r
@@ -106,11 +107,11 @@ var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
 	console.log('>Running :'+new Date().toLocaleString());
 	console.log('-----------------------------------');
-  	//await upDatePrecio(); lo hace el de telegram
+
 	await comprarBRST();
-	//await ajusteMoneda();
-	calculoBRST();
+	await calculoBRST();
 	await actualizarPrecioBRUTContrato();
+
 	console.log('=>Done: '+new Date().toLocaleString());
 	
 });
@@ -419,6 +420,23 @@ async function ajusteMoneda(){
 };
 
 async function calculoBRST(){
+	var cuenta = await tronWeb2.trx.getAccount();
+	cuenta.wallet = tronWeb2.address.fromHex(cuenta.address);
+
+	var recompensas = await tronWeb.trx.getReward(cuenta.address);
+	recompensas = new BigNumber(recompensas).shiftedBy(-6);
+
+	var permTiempo = ( Date.now() >= 1704758400000 ) && (Date.now() > cuenta.latest_withdraw_time+(86400*1000))
+
+	if (true && permTiempo && recompensas > 0) {
+		console.log("[Reclamando recompensa: "+permTiempo+"]");
+		const tradeobj = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 1);
+		const signedtxn = await tronWeb.trx.sign(tradeobj, PEKEY);
+		const receipt = await tronWeb.trx.sendRawTransaction(signedtxn);
+		console.log("[Transaccion: https://tronscan.io/#/transaction/"+receipt.txid+"]");
+	}
+
+	await delay(3000)
 
 	var balance = await tronWeb3.trx.getUnconfirmedBalance("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
 	balance = new BigNumber(balance).shiftedBy(-6);
