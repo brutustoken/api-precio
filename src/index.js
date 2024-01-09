@@ -419,18 +419,19 @@ async function ajusteMoneda(){
 };
 
 async function calculoBRST(){
-	var cuenta = await tronWeb2.trx.getAccount();
-	cuenta.wallet = tronWeb2.address.fromHex(cuenta.address);
+	var cuenta = await tronWeb.trx.getAccount();
+	cuenta.wallet = tronWeb.address.fromHex(cuenta.address);
 
 	var recompensas = await tronWeb.trx.getReward(cuenta.address);
 	recompensas = new BigNumber(recompensas).shiftedBy(-6);
 
 	var permTiempo = ( Date.now() >= 1704765600000 ) && (Date.now() > cuenta.latest_withdraw_time+(86400*1000))
+	console.log(permTiempo)
 
 	if (true && permTiempo && recompensas > 0) {
 		console.log("[Reclamando recompensa: "+permTiempo+"]");
 		const tradeobj = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 1);
-		const signedtxn = await tronWeb.trx.sign(tradeobj, PEKEY);
+		const signedtxn = await tronWeb.trx.sign(tradeobj);
 		const receipt = await tronWeb.trx.sendRawTransaction(signedtxn);
 		console.log("[Transaccion: https://tronscan.io/#/transaction/"+receipt.txid+"]");
 	}
@@ -460,7 +461,7 @@ async function calculoBRST(){
 		
 		console.log("-------------- EJECUCIÓN V4 ------------");
 		console.log("Ejecutor: "+account.wallet);
-		console.log("Wallet SR: "+WALLET_SR);
+		console.log("Wallet SR: "+cuenta.wallet);
 		console.log(" ")
 		console.log("Disponible: "+balance+" TRX");
 		console.log("Congelado: "+(trx.amount-trx.quantity)+" TRX");
