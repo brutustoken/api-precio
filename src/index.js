@@ -1,4 +1,6 @@
 const abi_POOLBRST = require("./abi/PoolBRSTv4");
+const abi_LOTTERY = require("./abi/Lottery");
+
 const express = require('express');
 const fetch = require('node-fetch');
 const TronWeb = require('tronweb');
@@ -36,6 +38,7 @@ const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R
 const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
 
 const addressContractPoolProxy = process.env.APP_CONTRACT_POOL_PROXY || "TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55";
+const addressContractlottery = "TKghr3aZvCbo41c8y5vUXofChF1gMmjTHr";
 
 const develop = process.env.APP_develop || "false";
 
@@ -62,8 +65,6 @@ const Precios = new Schema({
 
 const PrecioBRST = mongoose.model('brst 2', Precios);
 const PrecioBRUT = mongoose.model('bruts 2', Precios);
-
-const addressParaenergia = "TWqsREyZUtPkBNrzSSCZ9tbzP3U5YUxppf";
 
 var lastTimeBRUT;
 
@@ -92,13 +93,21 @@ var tronWeb3 = new TronWeb({
 let contract_POOL_PROXY = {}
 contract_POOL_PROXY = tronWeb3.contract(abi_POOLBRST,addressContractPoolProxy)
 
+let contract_LOTTERY = {}
+contract_LOTTERY = tronWeb3.contract(abi_LOTTERY,addressContractlottery)
+
 
 
 var inicio = new CronJob('0 */1 * * * *', async() => {
 	console.log('-----------------------------------');
-	console.log('>Running :'+new Date().toLocaleString());
+	console.log('>Running: '+new Date().toLocaleString());
 	console.log('-----------------------------------');
 
+	//Lottery functions PoolBRST
+	llenarWhiteList();
+
+
+	//brutus functions
 	await comprarBRST();
 	await calculoBRST();
 	await actualizarPrecioBRUTContrato();
@@ -143,6 +152,52 @@ if(develop === "false"){
 
 
 	///
+}
+
+async function llenarWhiteList(){
+
+	// consultar necesario en Lottery
+
+	let premio = await contract_LOTTERY._premio().call()
+	premio = new BigNumber(premio[0]._hex)
+
+
+	//meter lo necesario en el whitelist del Pool
+
+	let apartado = await contract_POOL_PROXY.totalDisponible().call();
+	apartado = new BigNumber(apartado._hex)
+
+
+	if( premio > apartado && true){
+		await contract_POOL_PROXY.setDisponible(premio.plus(1*10**6).toString(10)).send()
+		.then((h)=>{
+			console.log("[Ejecución: llenado white List Lottery "+h+"]");
+
+		})
+		.catch((err)=>{console.log(err)});
+	}
+
+	// si es tiempo de sorteo sortea
+
+
+	let tiempoSorteo = await contract_LOTTERY.proximaRonda().call();
+	tiempoSorteo = new BigNumber(tiempoSorteo._hex).toNumber()
+	console.log(tiempoSorteo)
+
+
+	if(parseInt(Date.now()/1000) > tiempoSorteo){
+
+		await contract_LOTTERY.sorteo().send()
+		.then((h)=>{
+			console.log("[Ejecución: Sorteo Lottery "+h+"]");
+
+		})
+		.catch((err)=>{console.log(err)});
+
+		
+
+	}
+
 }
 
 async function guardarDatos(temp){
@@ -213,33 +268,6 @@ async function retirarTrxContrato() {
 
 }
 
-async function comprarBRST(){
-
-	var cuenta = await tronWeb2.trx.getAccount();
-
-	cuenta.balance = 0;
-	if(cuenta.balance){
-		cuenta.balance = cuenta.balance/10**6;
-	}
-
-	cuenta.wallet = tronWeb2.address.fromHex(cuenta.address);
-
-	console.log("--------- AUTOCOMPRA BRST -----------");
-	console.log("wallet: "+cuenta.wallet);
-	console.log("balance: "+cuenta.balance+" TRX");
-
-	console.log("------------------------------");
-
-	// comprar auto brst
-	if(cuenta.balance >= 100 && true){
-		
-		var tx = await contract_POOL_PROXY.staking().send({callValue: parseInt(cuenta.balance*10**6)});
-		console.log("[Ejecución: compra de BRST "+tx+"]");
-	}
-	
-
-};
-
 async function actualizarPrecioBRUTContrato() {
 	let precio = await fetch(API).then((r)=>{return r.json()}).catch(error =>{console.error(error);})
 
@@ -293,6 +321,33 @@ async function precioBRUT(){
 		return {precio: precio, Pricetrx: Pricetrx, variacion: variacion };
 }
 
+async function comprarBRST(){
+
+	var cuenta = await tronWeb2.trx.getAccount();
+
+	cuenta.balance = 0;
+	if(cuenta.balance){
+		cuenta.balance = cuenta.balance/10**6;
+	}
+
+	cuenta.wallet = tronWeb2.address.fromHex(cuenta.address);
+
+	console.log("--------- AUTOCOMPRA BRST -----------");
+	console.log("wallet: "+cuenta.wallet);
+	console.log("balance: "+cuenta.balance+" TRX");
+
+	console.log("------------------------------");
+
+	// comprar auto brst
+	if(cuenta.balance >= 100 && true){
+		
+		var tx = await contract_POOL_PROXY.staking().send({callValue: parseInt(cuenta.balance*10**6)});
+		console.log("[Ejecución: compra de BRST "+tx+"]");
+	}
+	
+
+};
+
 async function calculoBRST(){
 	var cuenta = await tronWeb.trx.getAccount();
 	cuenta.wallet = tronWeb.address.fromHex(cuenta.address);
@@ -301,7 +356,7 @@ async function calculoBRST(){
 	recompensas = new BigNumber(recompensas).shiftedBy(-6);
 
 	var permTiempo = ( Date.now() >= 1704765600000 ) && (Date.now() > cuenta.latest_withdraw_time+(86400*1000))
-	console.log(permTiempo)
+	//console.log(permTiempo)
 
 	if (true && permTiempo && recompensas > 0) {
 		console.log("[Reclamando recompensa: "+permTiempo+"]");
