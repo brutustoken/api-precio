@@ -43,9 +43,7 @@ const addressContractlottery = "TKghr3aZvCbo41c8y5vUXofChF1gMmjTHr";
 const develop = process.env.APP_develop || "false";
 
 var lastPriceBrut;
-var lastPriceTRX;
-
-precioBRUT();
+var lastPriceTRX = 0.142;
 
 mongoose.set('strictQuery', false);
 mongoose.connect(uriMongoDB)
@@ -97,6 +95,8 @@ contract_POOL_PROXY = tronWeb3.contract(abi_POOLBRST, addressContractPoolProxy)
 let contract_LOTTERY = {}
 contract_LOTTERY = tronWeb3.contract(abi_LOTTERY, addressContractlottery)
 
+
+precioBRUT()
 
 
 var inicio = new CronJob('0 */1 * * * *', async () => {
@@ -437,12 +437,16 @@ async function calculoBRST() {
 
 };
 
+precioBRST()
+
 async function precioBRST() {
 
-	var RATE = await contract_POOL_PROXY.RATE().call();
-	RATE = new BigNumber(RATE.toNumber()).shiftedBy(-6)
+	let result = {}
 
-	let json = {}
+	var RATE = await contract_POOL_PROXY.RATE().call();
+	RATE = new BigNumber(RATE.toNumber()).shiftedBy(-6).toNumber()
+
+	result.RATE = RATE;
 
 	try {
 
@@ -460,20 +464,33 @@ async function precioBRST() {
 
 	var Price = new BigNumber(lastPriceTRX).times(RATE).dp(6).toNumber();
 
-	let consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=2")
-		.then((r) => { return r.json() })
-		.then((r) => { return r.Data })
-		.catch(error => {
-			console.error(error);
-			return false;
-		})
+	result.Price = Price;
+
+	let consulta3 = {}
+
+	try {
+
+		consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=2")
+			.then((r) => { return r.json() })
+			.then((r) => { return r.Data })
+			.catch(error => {
+				console.error(error);
+				return {};
+			})
+
+		result.variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
+
+		result.APY = variacion * 360
+
+
+	} catch {
+
+	}
 
 	//console.log(consulta3)
-	let variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
 
-	let APY = variacion * 360
-
-	return { RATE: RATE, variacion: variacion, Price: Price, APY: APY }
+	console.log(result)
+	return result;
 }
 
 app.get(URL, async (req, res) => {
@@ -591,6 +608,47 @@ app.get(URL+'ajuste',async(req,res) => {
 });
 */
 
+async function chart(moneda, limite, temporalidad) {
+
+	let Operador = PrecioBRST
+
+	moneda = moneda.toLowerCase()
+
+	switch (moneda) {
+		case "brut":
+			Operador = PrecioBRUT
+			break;
+
+		default:
+			break;
+	}
+
+	let consulta = { error: true, msg: "no data" }
+
+	let datos = [];
+
+
+	try {
+
+		consulta = await Operador.find({ temporalidad: temporalidad }, { valor: 1, date: 1 }).sort({ date: -1 }).limit(limite)
+
+
+		for (let index = 0; index < consulta.length; index++) {
+			let tiempo = (new Date(consulta[index].date)).getTime()
+			datos.push({ date: tiempo, value: consulta[index].valor });
+
+		}
+
+	} catch (error) {
+
+	}
+
+
+	return datos;
+
+
+}
+
 app.get(URL + 'chartdata/:moneda', async (req, res) => {
 
 	let moneda = req.params.moneda;
@@ -614,42 +672,12 @@ app.get(URL + 'chartdata/:moneda', async (req, res) => {
 		"Data": {}
 	}
 
-	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
-		let consulta = await PrecioBRUT.find({ temporalidad: temporalidad }, { valor: 1, date: 1 }).sort({ date: -1 }).limit(limite)
-
-		let datos = [];
-
-		for (let index = 0; index < consulta.length; index++) {
-			let tiempo = (new Date(consulta[index].date)).getTime()
-			datos.push({ date: tiempo, value: consulta[index].valor });
-
-		}
-		response = {
-			"Ok": true,
-			"Data": datos
-		}
-
+	response = {
+		"Ok": true,
+		"Data": await chart(moneda, limite, temporalidad)
 	}
 
-	if (moneda == "BRST" || moneda == "brst" || moneda == "brst_usd" || moneda == "BRST_USD" || moneda == "brst_trx" || moneda == "BRST_TRX") {
-
-		let consulta = await PrecioBRST.find({ temporalidad: temporalidad }, { _id: 0, valor: 1, date: 1 }).sort({ date: -1 }).limit(limite)
-
-		let datos = [];
-
-		for (let index = 0; index < consulta.length; index++) {
-			let tiempo = (new Date(consulta[index].date)).getTime();
-			datos.push({ date: tiempo, value: consulta[index].valor });
-
-		}
-		response = {
-			"Ok": true,
-			"Data": datos
-		}
-
-
-	}
 
 	res.send(response);
 
