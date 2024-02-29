@@ -308,14 +308,11 @@ async function precioBRUT() {
 	let RATE = await contract.RATE().call();
 	RATE = parseInt(RATE._hex);
 
-	let Pricetrx = await fetch("https://api.just.network/swap/scan/statusinfo").then((res) => { return res.json() }).catch((error) => { console.error(error); });
-
-	Pricetrx = precio / Pricetrx.data.trxPrice;
+	Pricetrx = precio / lastPriceTRX;
 
 	let variacion = await fetch(API_last_BRUT).then((res) => { return res.json() }).catch(error => { console.error(error) })
 
-	variacion = (variacion.values[0][0]).replace(',', '.');
-	variacion = parseFloat(variacion);
+	variacion = parseFloat((variacion.values[0][0]).replace(',', '.'));
 
 	variacion = (precio - variacion) / precio;
 
@@ -470,14 +467,7 @@ async function precioBRST() {
 
 	try {
 
-		consulta3 = await fetch("https://brutusservices.com/api/v1/chartdata/brst?temporalidad=day&limite=2")
-			.then((r) => { return r.json() })
-			.then((r) => { return r.Data })
-			.catch(error => {
-				console.error(error);
-				return {};
-			})
-
+		consulta3 = await chart("brst", 5, "day")
 		result.variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
 
 		result.APY = variacion * 360
