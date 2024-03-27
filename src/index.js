@@ -404,10 +404,10 @@ async function calculoBRST() {
 
 		console.log("------------------------------");
 
-		var tolerancia = 1; // 1 TRX
+		var tolerancia = 10; // 1 = 1 TRX
 
 		// ajusta las ganancias
-		if (diferenciaV4 > tolerancia && true) {
+		if (diferenciaV4 > tolerancia) {
 			await contract_POOL_PROXY.gananciaDirecta(parseInt(diferenciaV4 * 10 ** 6)).send()
 				.then((h) => {
 					console.log("[Ejecución: ganancia directa (" + diferenciaV4 + ") " + h + "]");
@@ -417,7 +417,7 @@ async function calculoBRST() {
 		}
 
 		// ajusta las perdidas
-		if (diferenciaV4 * -1 > tolerancia && true) {
+		if (diferenciaV4 * -1 > tolerancia) {
 			diferenciaV4 = diferenciaV4 * -1;
 
 			let calculo = parseInt(diferenciaV4 * 10 ** 6);
