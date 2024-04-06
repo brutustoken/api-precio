@@ -19,6 +19,8 @@ var version = "v1"
 const URL = "/" + base + "/" + version + "/"
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 const port = process.env.PORT || 3004;
@@ -265,6 +267,16 @@ async function retirarTrxContrato() {
 
 		var tx = await contract_POOL_PROXY.redimTRX(balance.minus(trxSolicitado).toString(10)).send();
 		console.log("https://tronscan.io/#/transaction/" + tx)
+
+
+		let transaction = await tronWeb3.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", balance.minus(trxSolicitado).toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", {});
+		transaction = await tronWeb3.trx.sign(transaction);
+		transaction = await tronWeb3.trx.sendRawTransaction(signedTransaction);
+
+		console.log("https://tronscan.io/#/transaction/" + transaction.txid)
+
+
+		//enviar el 90% TRX a la DWY 
 	}
 
 }
@@ -761,32 +773,34 @@ app.get(URL + 'solicitudes/retiro', async (req, res) => {
 	res.send(result)
 })
 
-app.get(URL + 'solicitudes/p2p/venta', async (req, res) => {
-	var result = {};
-	const contractPool = await tronWeb2.contract().at(addressContractPool);
 
-	var deposits = await contractPool.solicitudesPendientesGlobales().call();
-	var globRetiros = [];
+app.post(URL + 'alquilar/energia', async (req, res) => {
 
-	var tiempo = (await contractPool.TIEMPO().call()).toNumber() * 1000;
-	var diasDeEspera = (tiempo / (86400 * 1000)).toPrecision(2)
+	console.log(req.body)
 
-	for (let index = 0; index < deposits.length; index++) {
+	let transaction = req.body.transaction
 
-		let solicitud = await contractPool.verSolicitudPendiente(parseInt(deposits[index]._hex)).call();
-		let inicio = solicitud[1].toNumber() * 1000
+	console.log(transaction)
+	transaction = await tronWeb.trx.sendRawTransaction(transaction)
 
-		let diasrestantes = ((inicio + tiempo - Date.now()) / (86400 * 1000)).toPrecision(2)
-		if (diasrestantes >= 14) {
-			globRetiros.push({ "id": parseInt(deposits[index]._hex), "trx": parseInt(solicitud[2]._hex) / 10 ** 6, "tiempoRestante": diasrestantes - 14 })
-		}
+	console.log(transaction)
+
+
+	if (transaction.code) {
+
+		res.status(200).send("error")
+
+
+	} else {
+
+		res.status(200).send("ok")
 
 
 	}
 
-	result.Data = globRetiros
 
-	res.send(result)
+
+
 })
 
 app.listen(port, () => console.log('Escuchando Puerto: ' + port))
