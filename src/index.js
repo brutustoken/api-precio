@@ -121,7 +121,8 @@ var inicio = new CronJob('0 */1 * * * *', async () => {
 inicio.start();
 
 var revisionContrato = new CronJob('0 0 */1 * * *', async function () {
-	retirarTrxContrato() // contrato de retiros TRX_BRST
+	retirarTrxContrato(); // contrato de retiros TRX_BRST Al wallet owner pool
+	sendTrxSR();
 }, null, true, 'America/Bogota');
 revisionContrato.start();
 
@@ -152,9 +153,42 @@ if (develop === "false") {
 } else {
 	/// colocar funciones para probar solo en entorno de pruebas
 
+	var testFunctions = new CronJob('0 * * * * *', async function () {
+
+
+
+
+	}, null, true, 'America/Bogota');
+	testFunctions.start();
 
 
 	///
+}
+
+async function sendTrxSR() {
+
+	let balance = await tronWeb3.trx.getBalance()
+
+
+	if (balance > 110 * 10 ** 6) {
+
+		console.log("balance envio: " + balance)
+
+
+		balance = new BigNumber(balance)
+
+		let transaction = await tronWeb3.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", balance.minus(100 * 10 ** 6).toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", {});
+		transaction = await tronWeb3.trx.sign(transaction);
+		transaction = await tronWeb3.trx.sendRawTransaction(transaction);
+
+		console.log("https://tronscan.io/#/transaction/" + transaction.txid)
+
+	}
+	/*
+		
+	*/
+
+	//enviar el 90% TRX a la DWY 
 }
 
 async function llenarWhiteList() {
@@ -268,15 +302,6 @@ async function retirarTrxContrato() {
 		var tx = await contract_POOL_PROXY.redimTRX(balance.minus(trxSolicitado).toString(10)).send();
 		console.log("https://tronscan.io/#/transaction/" + tx)
 
-
-		let transaction = await tronWeb3.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", balance.minus(trxSolicitado).toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", {});
-		transaction = await tronWeb3.trx.sign(transaction);
-		transaction = await tronWeb3.trx.sendRawTransaction(signedTransaction);
-
-		console.log("https://tronscan.io/#/transaction/" + transaction.txid)
-
-
-		//enviar el 90% TRX a la DWY 
 	}
 
 }
