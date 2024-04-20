@@ -122,7 +122,7 @@ inicio.start();
 
 var revisionContrato = new CronJob('0 0 */1 * * *', async function () {
 	retirarTrxContrato(); // contrato de retiros TRX_BRST Al wallet owner pool
-	sendTrxSR();
+	sendTrxSR(); // envia de la wallet pool el exedente al SR
 }, null, true, 'America/Bogota');
 revisionContrato.start();
 
@@ -155,7 +155,7 @@ if (develop === "false") {
 
 	var testFunctions = new CronJob('0 * * * * *', async function () {
 
-
+		//sendTrxSR()
 
 
 	}, null, true, 'America/Bogota');
@@ -219,7 +219,7 @@ async function llenarWhiteList() {
 
 	let tiempoSorteo = await contract_LOTTERY.proximaRonda().call();
 	tiempoSorteo = new BigNumber(tiempoSorteo._hex).toNumber()
-	console.log(tiempoSorteo)
+	//console.log(tiempoSorteo)
 
 
 	if (parseInt(Date.now() / 1000) > tiempoSorteo) {
