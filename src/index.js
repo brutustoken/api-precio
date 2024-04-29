@@ -28,7 +28,6 @@ const API = process.env.APP_GOOGLE_API;
 const uriMongoDB = process.env.APP_URIMONGODB
 
 const API_last_BRUT = process.env.APP_GOOGLE_API_BRUT;
-const API_last_BRST = process.env.APP_GOOGLE_API_BRST;
 
 const CAP_BRUT = process.env.APP_GOOGLE_API_CAP_BRUT;
 const CIRC_BRUT = process.env.APP_GOOGLE_API_CIRC_BRUT
@@ -108,7 +107,6 @@ var inicio = new CronJob('0 */1 * * * *', async () => {
 
 	//Lottery functions PoolBRST
 	llenarWhiteList();
-
 
 	//brutus functions
 	await comprarBRST();
@@ -272,6 +270,7 @@ async function retirarTrxContrato() {
 
 	var cuenta = await tronWeb.trx.getAccount(addressContractPoolProxy);
 
+	//hacer cuentas con valores completos
 	let trxSolicitado = await contract_POOL_PROXY.TRON_SOLICITADO().call();
 	if (trxSolicitado._hex) trxSolicitado = parseInt(trxSolicitado._hex);
 	trxSolicitado = new BigNumber(trxSolicitado);
@@ -281,11 +280,11 @@ async function retirarTrxContrato() {
 		trxSolicitado = trxSolicitado.minus(descongelando.amount)
 	}
 
-	var RR = await contract_POOL_PROXY.TRON_PAY_BALANCE_FAST().call();
+	var RR = await contract_POOL_PROXY.TRON_RR().call();
 	if (RR._hex) RR = parseInt(RR._hex)
 	RR = new BigNumber(RR)
 
-	var WhiteList = await contract_POOL_PROXY.TRON_PAY_BALANCE_WHITE().call();
+	var WhiteList = await contract_POOL_PROXY.totalDisponible().call();
 	if (WhiteList._hex) WhiteList = parseInt(WhiteList._hex)
 	WhiteList = new BigNumber(WhiteList)
 
