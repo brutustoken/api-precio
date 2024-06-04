@@ -119,8 +119,12 @@ var inicio = new CronJob('0 */1 * * * *', async () => {
 inicio.start();
 
 var revisionContrato = new CronJob('0 0 */1 * * *', async function () {
-	retirarTrxContrato(); // contrato de retiros TRX_BRST Al wallet owner pool
-	sendTrxSR(); // envia de la wallet pool el exedente al SR
+	// contrato de retiros TRX_BRST Al wallet owner pool
+	//retirarTrxContrato(); 
+
+	// envia de la wallet pool el exedente al SR
+	//sendTrxSR(); 
+
 }, null, true, 'America/Bogota');
 revisionContrato.start();
 
