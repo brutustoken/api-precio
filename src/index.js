@@ -2,14 +2,15 @@ const abi_POOLBRST = require("./abi/PoolBRSTv4");
 const abi_LOTTERY = require("./abi/Lottery");
 
 const express = require('express');
-const fetch = require('node-fetch');
 const TronWeb = require('tronweb');
+
 const mongoose = require('mongoose');
 const BigNumber = require('bignumber.js');
-
-var cors = require('cors');
-require('dotenv').config();
 const CronJob = require('cron').CronJob;
+
+
+let cors = require('cors');
+require('dotenv').config();
 
 function delay(ms) { return new Promise(res => setTimeout(res, ms)); }
 
@@ -68,13 +69,24 @@ const PrecioBRUT = mongoose.model('bruts 2', Precios);
 
 var lastTimeBRUT;
 
+
+// DWY principal cambiada por permisions 1
 var tronWeb = new TronWeb({
 	fullHost: TRONGRID_API,
 	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
-	privateKey: process.env.APP_PRIVATEKEY
+	privateKey: process.env.APP_PRIVATEKEY_PERM_1
 
 });
 
+var tronWeb_2fa = new TronWeb({
+	fullHost: TRONGRID_API,
+	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
+	privateKey: process.env.APP_PRIVATEKEY_PERM_2
+
+});
+
+
+//cuenta alterna que compra BRST en automatico
 var tronWeb2 = new TronWeb({
 	fullHost: TRONGRID_API,
 	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
@@ -82,6 +94,8 @@ var tronWeb2 = new TronWeb({
 
 });
 
+
+//owner proxy Pool v4
 var tronWeb3 = new TronWeb({
 	fullHost: TRONGRID_API,
 	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
@@ -272,14 +286,14 @@ async function guardarDatos(temp) {
 
 async function retirarTrxContrato() {
 
-	var cuenta = await tronWeb.trx.getAccount(addressContractPoolProxy);
+	var cuenta = await tronWeb3.trx.getAccount(addressContractPoolProxy);
 
 	//hacer cuentas con valores completos
 	let trxSolicitado = await contract_POOL_PROXY.TRON_SOLICITADO().call();
 	if (trxSolicitado._hex) trxSolicitado = parseInt(trxSolicitado._hex);
 	trxSolicitado = new BigNumber(trxSolicitado);
 
-	var descongelando = await tronWeb.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now() + 14 * 86400 * 1000)
+	var descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now() + 14 * 86400 * 1000)
 	if (descongelando.amount) {
 		trxSolicitado = trxSolicitado.minus(descongelando.amount)
 	}
@@ -319,7 +333,7 @@ async function actualizarPrecioBRUTContrato() {
 
 	//let precio = 12.58;
 
-	let contract = await tronWeb.contract().at(addressContract);
+	let contract = await tronWeb3.contract().at(addressContract);
 	let RATE = await contract.RATE().call();
 	RATE = parseInt(RATE._hex);
 
@@ -344,7 +358,7 @@ async function precioBRUT() {
 
 	}
 
-	let contract = await tronWeb.contract().at(addressContract);
+	let contract = await tronWeb3.contract().at(addressContract);
 	let RATE = await contract.RATE().call();
 	RATE = parseInt(RATE._hex);
 
