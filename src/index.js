@@ -401,7 +401,7 @@ async function comprarBRST() {
 };
 
 async function calculoBRST() {
-	var cuenta = await tronWeb.trx.getAccount();
+	var cuenta = await tronWeb.trx.getAccount(WALLET_SR);
 	cuenta.wallet = tronWeb.address.fromHex(cuenta.address);
 
 	var recompensas = await tronWeb.trx.getReward(cuenta.address);
@@ -412,21 +412,21 @@ async function calculoBRST() {
 
 	if (true && permTiempo && recompensas > 0) {
 		console.log("[Reclamando recompensa: " + permTiempo + "]");
-		const tradeobj = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 1);
-		const signedtxn = await tronWeb.trx.sign(tradeobj);
-		const receipt = await tronWeb.trx.sendRawTransaction(signedtxn);
-		console.log("[Transaccion: https://tronscan.io/#/transaction/" + receipt.txid + "]");
+		let transaction = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 3);
+		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
+		transaction = await tronWeb.trx.sendRawTransaction(transaction);
+		console.log("[Transaccion: https://tronscan.io/#/transaction/" + transaction.txid + "]");
 	}
 
 	await delay(3000)
 
-	var balance = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
+	let balance = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
 	balance = new BigNumber(balance).shiftedBy(-6);
 
-	var account = await tronWeb3.trx.getAccount()
+	let account = await tronWeb3.trx.getAccount()
 	account.wallet = tronWeb.address.fromHex(account.address);
 
-	var trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=" + WALLET_SR + "&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
+	let trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=" + WALLET_SR + "&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
 		.then((r) => { return r.json() })
 		.then((r) => { return r.data[0] })
 		.catch((e) => { console.error(e); return false })
@@ -434,8 +434,8 @@ async function calculoBRST() {
 	if (trx) {
 		//console.log(trx)
 
-		var trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber() / 10 ** 6;
-		var trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
+		let trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber() / 10 ** 6;
+		let trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
 		trxContractRetirosV4 = new BigNumber(trxContractRetirosV4).shiftedBy(-6);
 
 		console.log("-------------- EJECUCIÓN V4 ------------");
