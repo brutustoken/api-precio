@@ -12,10 +12,10 @@ const CronJob = require('cron').CronJob;
 let cors = require('cors');
 require('dotenv').config();
 
-function delay(ms) { return new Promise(res => setTimeout(res, ms)); }
+function delay(s) { return new Promise(res => setTimeout(res, s * 1000)); }
 
-var base = "api"
-var version = "v1"
+let base = "api"
+let version = "v1"
 
 const URL = "/" + base + "/" + version + "/"
 
@@ -44,8 +44,8 @@ const addressContractlottery = "TKghr3aZvCbo41c8y5vUXofChF1gMmjTHr";
 
 const develop = process.env.APP_develop || "false";
 
-var lastPriceBrut;
-var lastPriceTRX = 0.142;
+let lastPriceBrut;
+let lastPriceTRX = 0.123;
 
 mongoose.set('strictQuery', false);
 mongoose.connect(uriMongoDB)
@@ -67,18 +67,18 @@ const Precios = new Schema({
 const PrecioBRST = mongoose.model('brst 2', Precios);
 const PrecioBRUT = mongoose.model('bruts 2', Precios);
 
-var lastTimeBRUT;
+let lastTimeBRUT;
 
 
 // DWY principal cambiada por permisions 1
-var tronWeb = new TronWeb({
+let tronWeb = new TronWeb({
 	fullHost: TRONGRID_API,
 	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
 	privateKey: process.env.APP_PRIVATEKEY_PERM_1
 
 });
 
-var tronWeb_2fa = new TronWeb({
+let tronWeb_2fa = new TronWeb({
 	fullHost: TRONGRID_API,
 	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
 	privateKey: process.env.APP_PRIVATEKEY_PERM_2
@@ -87,7 +87,7 @@ var tronWeb_2fa = new TronWeb({
 
 
 //cuenta alterna que compra BRST en automatico
-var tronWeb2 = new TronWeb({
+let tronWeb2 = new TronWeb({
 	fullHost: TRONGRID_API,
 	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
 	privateKey: process.env.APP_PRIVATEKEY2
@@ -96,7 +96,7 @@ var tronWeb2 = new TronWeb({
 
 
 //owner proxy Pool v4
-var tronWeb3 = new TronWeb({
+let tronWeb3 = new TronWeb({
 	fullHost: TRONGRID_API,
 	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
 	privateKey: process.env.APP_PRIVATEKEY3
@@ -114,7 +114,7 @@ contract_LOTTERY = tronWeb3.contract(abi_LOTTERY, addressContractlottery)
 precioBRUT()
 
 
-var inicio = new CronJob('0 */1 * * * *', async () => {
+let inicio = new CronJob('0 */1 * * * *', async () => {
 	console.log('-----------------------------------');
 	console.log('>Running: ' + new Date().toLocaleString());
 	console.log('-----------------------------------');
@@ -132,7 +132,7 @@ var inicio = new CronJob('0 */1 * * * *', async () => {
 });
 inicio.start();
 
-var revisionContrato = new CronJob('0 0 */1 * * *', async function () {
+let revisionContrato = new CronJob('0 0 */1 * * *', async function () {
 	// contrato de retiros TRX_BRST Al wallet owner pool
 	//retirarTrxContrato(); 
 
@@ -144,14 +144,14 @@ revisionContrato.start();
 
 if (develop === "false") {
 	//console.log("entro")
-	var dias = new CronJob('0 0 20 * * *', async function () {
+	let dias = new CronJob('0 0 20 * * *', async function () {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
 	}, null, true, 'America/Bogota');
 
 	dias.start();
 
-	var horas = new CronJob('0 0 */1 * * *', async function () {
+	let horas = new CronJob('0 0 */1 * * *', async function () {
 		await guardarDatos("hour");
 		console.log("Datos guardados - horas => " + new Date().toLocaleString());
 	}, null, true, 'America/Bogota');
@@ -160,7 +160,7 @@ if (develop === "false") {
 	horas.start();
 
 
-	//var minutos = new CronJob('0 */1 * * * *', async function() {
+	//let minutos = new CronJob('0 */1 * * * *', async function() {
 	//await guardarDatos("minute");
 	//	console.log("Datos guardando - minutos => "+new Date().toLocaleString());
 	//}, null, true, 'America/Bogota');
@@ -169,7 +169,7 @@ if (develop === "false") {
 } else {
 	/// colocar funciones para probar solo en entorno de pruebas
 
-	var testFunctions = new CronJob('0 * * * * *', async function () {
+	let testFunctions = new CronJob('0 * * * * *', async function () {
 
 		//sendTrxSR()
 
@@ -261,7 +261,7 @@ async function guardarDatos(temp) {
 
 	let consulta = await precioBRUT();
 
-	var instance = new PrecioBRUT({
+	let instance = new PrecioBRUT({
 		par: "brut-usd",
 		valor: consulta.precio,
 		date: fecha,
@@ -272,7 +272,7 @@ async function guardarDatos(temp) {
 
 	instance.save({});
 
-	var instance2 = new PrecioBRST({
+	let instance2 = new PrecioBRST({
 		par: "brst-trx",
 		valor: consulta2.RATE,
 		date: fecha,
@@ -284,42 +284,101 @@ async function guardarDatos(temp) {
 	instance2.save({});
 }
 
+solicitudUnstaking()
+
+async function solicitudUnstaking() {
+
+	let descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now())
+
+	if (descongelando.amount) {
+		console.log(descongelando)
+		//enviar lo descongelado al contrato de retiro
+
+	}
+
+
+	let solicitado = new BigNumber(await trxSolicitadoData())
+
+	console.log(solicitado.toString(10))
+
+
+	if (solicitado.toNumber() >= new BigNumber(1000).shiftedBy(6).toNumber()) {
+
+		console.log("Mayor a 1000 TRX solicitando descongelamiento de: " + solicitado.toString(10))
+
+		let transaction = await tronWeb.transactionBuilder.unfreezeBalanceV2(solicitado.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
+		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
+		transaction = await tronWeb.trx.sendRawTransaction(transaction);
+
+		console.log("https://tronscan.io/#/transaction/" + transaction.txid)
+	}
+
+}
+
+retirarTrxContrato()
+
 async function retirarTrxContrato() {
 
-	var cuenta = await tronWeb3.trx.getAccount(addressContractPoolProxy);
+	/*
+		let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", "1", "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
+		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
+		transaction = await tronWeb.trx.sendRawTransaction(transaction);
+	
+		console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
+	*/
 
-	//hacer cuentas con valores completos
-	let trxSolicitado = await contract_POOL_PROXY.TRON_SOLICITADO().call();
-	if (trxSolicitado._hex) trxSolicitado = parseInt(trxSolicitado._hex);
-	trxSolicitado = new BigNumber(trxSolicitado);
 
-	var descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now() + 14 * 86400 * 1000)
-	if (descongelando.amount) {
-		trxSolicitado = trxSolicitado.minus(descongelando.amount)
+	//saldo del contrato
+	let saldoContrato = new BigNumber(await tronWeb.trx.getBalance(addressContractPoolProxy));
+	let balance = saldoContrato
+
+	//saldo en descongelacion
+	let saldoDescongelacion = await tronWeb.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now() + 14 * 86400 * 1000)
+	if (saldoDescongelacion.amount) {
+		saldoDescongelacion = saldoDescongelacion.amount
 	}
+	saldoDescongelacion = new BigNumber(saldoDescongelacion)
 
-	var RR = await contract_POOL_PROXY.TRON_RR().call();
-	if (RR._hex) RR = parseInt(RR._hex)
-	RR = new BigNumber(RR)
+	balance = balance.plus(saldoDescongelacion)
 
-	var WhiteList = await contract_POOL_PROXY.totalDisponible().call();
-	if (WhiteList._hex) WhiteList = parseInt(WhiteList._hex)
-	WhiteList = new BigNumber(WhiteList)
+	//tron requerido para ser pagado
+	let trxSolicitado = new BigNumber((await contract_POOL_PROXY.TRON_SOLICITADO().call())._hex)
 
-	var balance = new BigNumber(cuenta.balance)
+	trxSolicitado = trxSolicitado.plus(await trxSolicitadoData())
 
-	trxSolicitado = trxSolicitado.plus(1 * 10 ** 6).plus(RR).plus(WhiteList)
-
+	console.log(trxSolicitado.toString(10), balance.toString(10), balance.minus(trxSolicitado).toNumber())
 
 	if (balance.gt(trxSolicitado) && true) {
-		console.log("trx en contract: " + balance.shiftedBy(-6).toString(10))
-		console.log("Para retirar: " + trxSolicitado.shiftedBy(-6).toString(10))
-		console.log("diferencia: " + balance.minus(trxSolicitado).shiftedBy(-6).toString(10))
 
-		var tx = await contract_POOL_PROXY.redimTRX(balance.minus(trxSolicitado).toString(10)).send();
-		console.log("https://tronscan.io/#/transaction/" + tx)
+		if (balance.minus(trxSolicitado).toNumber() >= new BigNumber(2000).shiftedBy(6).toNumber()) {
+
+			console.log("trx en contract: " + saldoContrato.shiftedBy(-6).toString(10))
+			console.log("trx Solicitado: " + trxSolicitado.shiftedBy(-6).toString(10))
+			let diferencia = balance.minus(trxSolicitado)
+			console.log("diferencia: " + diferencia.shiftedBy(-6).toString(10))
+
+			if (saldoContrato.toNumber() >= diferencia.toNumber()) {
+
+				let tx = await contract_POOL_PROXY.redimTRX(diferencia.toString(10)).send();
+				console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
+
+				await delay(3)
+
+				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", diferencia.toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 1);
+				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 1);
+				transaction = await tronWeb.trx.sendRawTransaction(transaction);
+
+				console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
+
+			}
+
+
+		}
+
 
 	}
+
+	return "ok"
 
 }
 
@@ -370,12 +429,12 @@ async function precioBRUT() {
 
 	variacion = (precio - variacion) / precio;
 
-	return { precio: precio, Pricetrx: Pricetrx, variacion: variacion };
+	return { precio: precio, Pricetrx: Pricetrx, variacion };
 }
 
 async function comprarBRST() {
 
-	var cuenta = await tronWeb2.trx.getAccount();
+	let cuenta = await tronWeb2.trx.getAccount();
 
 	cuenta.balance = 0;
 	if (cuenta.balance) {
@@ -393,7 +452,7 @@ async function comprarBRST() {
 	// comprar auto brst
 	if (cuenta.balance >= 100 && true) {
 
-		var tx = await contract_POOL_PROXY.staking().send({ callValue: parseInt(cuenta.balance * 10 ** 6) });
+		let tx = await contract_POOL_PROXY.staking().send({ callValue: parseInt(cuenta.balance * 10 ** 6) });
 		console.log("[Ejecución: compra de BRST " + tx + "]");
 	}
 
@@ -401,13 +460,13 @@ async function comprarBRST() {
 };
 
 async function calculoBRST() {
-	var cuenta = await tronWeb.trx.getAccount(WALLET_SR);
+	let cuenta = await tronWeb.trx.getAccount(WALLET_SR);
 	cuenta.wallet = tronWeb.address.fromHex(cuenta.address);
 
-	var recompensas = await tronWeb.trx.getReward(cuenta.address);
+	let recompensas = await tronWeb.trx.getReward(cuenta.address);
 	recompensas = new BigNumber(recompensas).shiftedBy(-6);
 
-	var permTiempo = (Date.now() >= 1704765600000) && (Date.now() > cuenta.latest_withdraw_time + (86400 * 1000))
+	let permTiempo = (Date.now() >= 1704765600000) && (Date.now() > cuenta.latest_withdraw_time + (86400 * 1000))
 	//console.log(permTiempo)
 
 	if (true && permTiempo && recompensas > 0) {
@@ -418,7 +477,7 @@ async function calculoBRST() {
 		console.log("[Transaccion: https://tronscan.io/#/transaction/" + transaction.txid + "]");
 	}
 
-	await delay(3000)
+	await delay(3)
 
 	let balance = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
 	balance = new BigNumber(balance).shiftedBy(-6);
@@ -447,18 +506,18 @@ async function calculoBRST() {
 		console.log(" ")
 		console.log("Para retiros v4: " + trxContractRetirosV4 + " TRX")
 		console.log(" ")
-		var total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4))
+		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4))
 		console.log("Total: " + total + " TRX");
 		console.log(" ")
 		console.log("Registro en Contrato V4: " + trxContractV4 + " TRX");
 		console.log(" ")
 
-		var diferenciaV4 = (total - trxContractV4).toFixed(6)
+		let diferenciaV4 = (total - trxContractV4).toFixed(6)
 		console.log("Diferencia V4: " + diferenciaV4 + " TRX");
 
 		console.log("------------------------------");
 
-		var tolerancia = 10; // 1 = 1 TRX
+		let tolerancia = 10; // 1 = 1 TRX
 
 		// ajusta las ganancias
 		if (diferenciaV4 > tolerancia) {
@@ -494,7 +553,7 @@ async function precioBRST() {
 
 	let result = {}
 
-	var RATE = await contract_POOL_PROXY.RATE().call();
+	let RATE = await contract_POOL_PROXY.RATE().call();
 	RATE = new BigNumber(RATE.toNumber()).shiftedBy(-6).toNumber()
 
 	result.RATE = RATE;
@@ -513,7 +572,7 @@ async function precioBRST() {
 		console.log(error);
 	}
 
-	var Price = new BigNumber(lastPriceTRX).times(RATE).dp(6).toNumber();
+	let Price = new BigNumber(lastPriceTRX).times(RATE).dp(6).toNumber();
 
 	result.Price = Price;
 
@@ -547,7 +606,7 @@ app.get(URL + 'precio/:moneda', async (req, res) => {
 
 	let moneda = req.params.moneda;
 
-	var response = {
+	let response = {
 		"Ok": false,
 		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
 		"Data": {}
@@ -599,7 +658,7 @@ app.get(URL + 'data/:peticion', async (req, res) => {
 
 	let peticion = req.params.peticion;
 
-	var response = {
+	let response = {
 		"Ok": false,
 		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
 		"Data": {}
@@ -624,26 +683,26 @@ app.get(URL + 'data/:peticion', async (req, res) => {
 app.get(URL+'ajuste',async(req,res) => {
 
 	const contractPool = await tronWeb.contract().at(addressPool);
-	var response = {};
+	let response = {};
 	// añade trx a la cuenta 
 	if(false){
 		//tronWeb.toSun()
-		var tx1 = await contractPool.gananciaDirecta(tronWeb.toSun(287)).send();
+		let tx1 = await contractPool.gananciaDirecta(tronWeb.toSun(287)).send();
 		response.tx1 = "[Ejecución Contrato: "+tx1+"]";
 	}
 	// imprime los tokens
 	if(false){
-		var tx2 = await contractPool.crearBRTS(1).send();
+		let tx2 = await contractPool.crearBRTS(1).send();
 		response.tx2 = "[Ejecución Contrato: "+tx2+"]";
 	}
 	// transfiere los tokens --- en proceso no usar
 	if(false){
-		var tx3 = await contractPool.gananciaDirecta(1).send();
+		let tx3 = await contractPool.gananciaDirecta(1).send();
 		response.tx3 = "[Ejecución Contrato: "+tx3+"]";
 	}
 	// retira trx de las ganancias
 	if(false){
-		var tx4 = await contractPool.asignarPerdida(1).send();
+		let tx4 = await contractPool.asignarPerdida(1).send();
 		response.tx4 = "[Ejecución Contrato: "+tx4+"]";
 	}
    
@@ -710,7 +769,7 @@ app.get(URL + 'chartdata/:moneda', async (req, res) => {
 		}
 	}
 
-	var response = {
+	let response = {
 		"Ok": false,
 		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
 		"Data": {}
@@ -731,7 +790,7 @@ app.get(URL + 'consutla/energia', async (req, res) => {
 
 	let peticion = (req.query.wallets).split(",");
 
-	var result = {
+	let result = {
 		data: 0
 	}
 
@@ -739,7 +798,7 @@ app.get(URL + 'consutla/energia', async (req, res) => {
 
 		const provider_address = peticion;
 
-		var energia = 0;
+		let energia = 0;
 		for (let index = 0; index < provider_address.length; index++) {
 			let delegacion = await tronWeb.trx.getCanDelegatedMaxSize(provider_address[index], 'ENERGY')
 			if (delegacion.max_size) {
@@ -769,7 +828,7 @@ app.get(URL + 'consulta/marketcap/brut', async (req, res) => {
 	circulante = (circulante).replace(',', '.');
 	circulante = parseFloat(circulante);
 
-	var result = {
+	let result = {
 		token: "BRUT",
 		marketcap: {
 			usdt: valor
@@ -784,14 +843,14 @@ app.get(URL + 'consulta/marketcap/brut', async (req, res) => {
 })
 
 app.get(URL + 'solicitudes/retiro', async (req, res) => {
-	var result = { sun_total: 0, trx_total: 0 };
+	let result = { sun_total: 0, trx_total: 0 };
 	const contractPool = await tronWeb2.contract().at(addressContractPool);
 
-	var deposits = await contractPool.solicitudesPendientesGlobales().call();
-	var globRetiros = [];
+	let deposits = await contractPool.solicitudesPendientesGlobales().call();
+	let globRetiros = [];
 
-	var tiempo = (await contractPool.TIEMPO().call()).toNumber() * 1000;
-	var diasDeEspera = (tiempo / (86400 * 1000)).toPrecision(2)
+	let tiempo = (await contractPool.TIEMPO().call()).toNumber() * 1000;
+	let diasDeEspera = (tiempo / (86400 * 1000)).toPrecision(2)
 
 	for (let index = 0; index < deposits.length; index++) {
 
@@ -813,6 +872,27 @@ app.get(URL + 'solicitudes/retiro', async (req, res) => {
 	result.sun_total = result.sun_total.toString(10)
 
 	res.send(result)
+})
+
+async function trxSolicitadoData() {
+	let consulta = await fetch("http://localhost:3333/api/v1/" + 'balance/retiro_real').then((r) => { return r.text() })
+
+	consulta = parseFloat(consulta)
+
+	if (isNaN(consulta)) {
+		consulta = 0
+
+	}
+
+	return consulta
+
+
+}
+
+
+app.get(URL + 'tron/solicitado', async (req, res) => {
+
+	res.status(200).send({ trx: await trxSolicitado() })
 })
 
 
