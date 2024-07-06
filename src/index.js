@@ -134,7 +134,6 @@ if (develop === "false") {
 	});
 	inicio.start();
 
-
 	let dias = new CronJob('0 0 20 * * *', async function () {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
@@ -149,9 +148,7 @@ if (develop === "false") {
 		await guardarDatos("hour");
 		console.log("Datos guardados - horas => " + new Date().toLocaleString());
 
-		await retirarTrxContrato();
-
-
+		retirarTrxContrato()
 
 	}, null, true, 'America/Bogota');
 
@@ -296,6 +293,8 @@ async function guardarDatos(temp) {
 
 async function retirarTrxContrato() {
 
+	console.log("Retiros Automatios")
+
 	let descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now())
 
 	console.log("Esta pa descongelar: ",descongelando)
@@ -328,21 +327,13 @@ async function retirarTrxContrato() {
 
 	let trxSolicitado = new BigNumber(await trxSolicitadoData())
 
-
-	//saldo del contrato
-	let saldoContrato = new BigNumber(await tronWeb.trx.getBalance(addressContractPoolProxy));
-	let balance = saldoContrato
-
-	//tron requerido para ser pagado
-	//let trxSolicitado = new BigNumber((await contract_POOL_PROXY.TRON_SOLICITADO().call())._hex)
-
-	//console.log(3,trxSolicitado.shiftedBy(-6).toString(10))
-
-
 	// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
-	let diferencia = trxSolicitado.minus(balance)
 
-	console.log(trxSolicitado.toString(10), balance.toString(10), diferencia.toString(10) )
+
+	console.log("Solicitud: "+trxSolicitado.shiftedBy(-6).toString(10))
+
+	let diferencia = trxSolicitado.shiftedBy(-6).dp(0).shiftedBy(6)
+	console.log(diferencia.shiftedBy(-6).toNumber())
 
 	if(diferencia.shiftedBy(-6).toNumber() >= 1000 && true){
 
@@ -361,7 +352,7 @@ async function retirarTrxContrato() {
 	}else{
 
 
-		let devolucion = diferencia.times(-1)
+		let devolucion = trxSolicitado.times(-1)
 
 		if(devolucion.toNumber() >= 1000 && false){
 
