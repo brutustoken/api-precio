@@ -110,43 +110,37 @@ contract_POOL_PROXY = tronWeb3.contract(abi_POOLBRST, addressContractPoolProxy)
 let contract_LOTTERY = {}
 contract_LOTTERY = tronWeb3.contract(abi_LOTTERY, addressContractlottery)
 
-
 precioBRUT()
 
 
-let inicio = new CronJob('0 */1 * * * *', async () => {
-	console.log('-----------------------------------');
-	console.log('>Running: ' + new Date().toLocaleString());
-	console.log('-----------------------------------');
-
-	//Lottery functions PoolBRST
-	llenarWhiteList();
-
-	//brutus functions
-	await comprarBRST();
-	await calculoBRST();
-	await actualizarPrecioBRUTContrato();
-
-	console.log('=>Done: ' + new Date().toLocaleString());
-
-});
-inicio.start();
-
-let revisionContrato = new CronJob('0 0 */1 * * *', async function () {
-	// contrato de retiros TRX_BRST Al wallet owner pool
-	//retirarTrxContrato(); 
-
-	// envia de la wallet pool el exedente al SR
-	//sendTrxSR(); 
-
-}, null, true, 'America/Bogota');
-revisionContrato.start();
-
 if (develop === "false") {
-	//console.log("entro")
+
+	//cada minuto se ejecuta
+	let inicio = new CronJob('0 */1 * * * *', async () => {
+		console.log('-----------------------------------');
+		console.log('>Running: ' + new Date().toLocaleString());
+		console.log('-----------------------------------');
+
+		//Lottery functions PoolBRST
+		llenarWhiteList();
+
+		//brutus functions
+		await comprarBRST();
+		await calculoBRST();
+		await actualizarPrecioBRUTContrato();
+
+		console.log('=>Done: ' + new Date().toLocaleString());
+
+	});
+	inicio.start();
+
+
 	let dias = new CronJob('0 0 20 * * *', async function () {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
+
+
+
 	}, null, true, 'America/Bogota');
 
 	dias.start();
@@ -154,8 +148,12 @@ if (develop === "false") {
 	let horas = new CronJob('0 0 */1 * * *', async function () {
 		await guardarDatos("hour");
 		console.log("Datos guardados - horas => " + new Date().toLocaleString());
-	}, null, true, 'America/Bogota');
 
+		await retirarTrxContrato();
+
+
+
+	}, null, true, 'America/Bogota');
 
 	horas.start();
 
@@ -167,23 +165,34 @@ if (develop === "false") {
 	//minutos.start();
 
 } else {
+
+	console.log("----------------- TEST MODE ----------------")
 	/// colocar funciones para probar solo en entorno de pruebas
+
+	//retirarTrxContrato()
+
 
 	let testFunctions = new CronJob('0 * * * * *', async function () {
 
+		console.log("ejecutando funciones tests")
+
 		//sendTrxSR()
+
+
+		//solicita unstaking del trx y retira el trx al contrato
+		//devuelve el TRX sobrante a la billetera madre
+
+
 
 
 	}, null, true, 'America/Bogota');
 	testFunctions.start();
 
-
-	///
 }
 
-async function sendTrxSR() {
+async function sendTrxSR(balance) {
 
-	let balance = await tronWeb3.trx.getBalance()
+	//let balance = await tronWeb3.trx.getBalance()
 
 
 	if (balance > 110 * 10 ** 6) {
@@ -284,99 +293,103 @@ async function guardarDatos(temp) {
 	instance2.save({});
 }
 
-solicitudUnstaking()
-
-async function solicitudUnstaking() {
-
-	let descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now())
-
-	if (descongelando.amount) {
-		console.log(descongelando)
-		//enviar lo descongelado al contrato de retiro
-
-	}
-
-
-	let solicitado = new BigNumber(await trxSolicitadoData())
-
-	console.log(solicitado.toString(10))
-
-
-	if (solicitado.toNumber() >= new BigNumber(1000).shiftedBy(6).toNumber()) {
-
-		console.log("Mayor a 1000 TRX solicitando descongelamiento de: " + solicitado.toString(10))
-
-		let transaction = await tronWeb.transactionBuilder.unfreezeBalanceV2(solicitado.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
-		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
-		transaction = await tronWeb.trx.sendRawTransaction(transaction);
-
-		console.log("https://tronscan.io/#/transaction/" + transaction.txid)
-	}
-
-}
-
-retirarTrxContrato()
 
 async function retirarTrxContrato() {
 
-	/*
-		let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", "1", "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
-		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
+	let descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now())
+
+	console.log("Esta pa descongelar: ",descongelando)
+
+	if (descongelando.amount && true) {
+		descongelando = descongelando.amount
+
+		//Descongela lo disponible
+		let transaction = await tronWeb.transactionBuilder.withdrawExpireUnfreeze("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
+		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
 		transaction = await tronWeb.trx.sendRawTransaction(transaction);
 	
-		console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
-	*/
+		console.log("se descongelaron "+descongelando+" TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
+		await delay(40)
+
+		//enviar lo descongelado al contrato de retiro
+
+		let transaction_2 = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", "1", "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
+		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_1, 4);
+		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_2, 4);
+
+		transaction_2 = await tronWeb.trx.sendRawTransaction(transaction_2);
+	
+		console.log("Transferido a TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55: https://tronscan.io/#/transaction/" + transaction_2.txid)
+
+		await delay(3)
+
+	}
+
+
+	let trxSolicitado = new BigNumber(await trxSolicitadoData())
 
 
 	//saldo del contrato
 	let saldoContrato = new BigNumber(await tronWeb.trx.getBalance(addressContractPoolProxy));
 	let balance = saldoContrato
 
-	//saldo en descongelacion
-	let saldoDescongelacion = await tronWeb.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now() + 14 * 86400 * 1000)
-	if (saldoDescongelacion.amount) {
-		saldoDescongelacion = saldoDescongelacion.amount
-	}
-	saldoDescongelacion = new BigNumber(saldoDescongelacion)
-
-	balance = balance.plus(saldoDescongelacion)
-
 	//tron requerido para ser pagado
-	let trxSolicitado = new BigNumber((await contract_POOL_PROXY.TRON_SOLICITADO().call())._hex)
+	//let trxSolicitado = new BigNumber((await contract_POOL_PROXY.TRON_SOLICITADO().call())._hex)
 
-	trxSolicitado = trxSolicitado.plus(await trxSolicitadoData())
-
-	console.log(trxSolicitado.toString(10), balance.toString(10), balance.minus(trxSolicitado).toNumber())
-
-	if (balance.gt(trxSolicitado) && true) {
-
-		if (balance.minus(trxSolicitado).toNumber() >= new BigNumber(2000).shiftedBy(6).toNumber()) {
-
-			console.log("trx en contract: " + saldoContrato.shiftedBy(-6).toString(10))
-			console.log("trx Solicitado: " + trxSolicitado.shiftedBy(-6).toString(10))
-			let diferencia = balance.minus(trxSolicitado)
-			console.log("diferencia: " + diferencia.shiftedBy(-6).toString(10))
-
-			if (saldoContrato.toNumber() >= diferencia.toNumber()) {
-
-				let tx = await contract_POOL_PROXY.redimTRX(diferencia.toString(10)).send();
-				console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
-
-				await delay(3)
-
-				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", diferencia.toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 1);
-				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 1);
-				transaction = await tronWeb.trx.sendRawTransaction(transaction);
-
-				console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
-
-			}
+	//console.log(3,trxSolicitado.shiftedBy(-6).toString(10))
 
 
+	// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
+	let diferencia = trxSolicitado.minus(balance)
+
+	console.log(trxSolicitado.toString(10), balance.toString(10), diferencia.toString(10) )
+
+	if(diferencia.shiftedBy(-6).toNumber() >= 1000 && true){
+
+		//solicita descongelacion
+
+		let transaction_3 = await tronWeb.transactionBuilder.unfreezeBalanceV2(diferencia.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
+		transaction_3 = await tronWeb.trx.multiSign(transaction_3, process.env.APP_PRIVATEKEY_PERM_1, 3);
+		transaction_3 = await tronWeb.trx.sendRawTransaction(transaction_3);
+	
+		console.log("https://tronscan.io/#/transaction/" + transaction_3.txid)
+
+		await delay(40)
+
+
+
+	}else{
+
+
+		let devolucion = diferencia.times(-1)
+
+		if(devolucion.toNumber() >= 1000 && false){
+
+			console.log("Devolución: "+devolucion.shiftedBy(-6).toString(10)+" TRX a la wallet madre")
+
+			// retirrar TRX del contrato
+
+			let tx = await contract_POOL_PROXY.redimTRX(devolucion.plus(1*10**6).toString(10)).send();
+			console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
+
+			await delay(3)
+
+
+			//enviarlo a la DWY                                                                         devolucion.toString(10)
+			let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY",devolucion.toString(10) , "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
+			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
+			transaction = await tronWeb.trx.sendRawTransaction(transaction);
+		
+			console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
 		}
 
 
 	}
+
+	
+
+
+	
 
 	return "ok"
 
