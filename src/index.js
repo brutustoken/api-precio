@@ -300,19 +300,19 @@ async function retirarTrxContrato() {
 	console.log("Esta pa descongelar: ",descongelando)
 
 	if (descongelando.amount && true) {
-		descongelando = descongelando.amount
+		descongelando = new BigNumber(descongelando.amount)
 
 		//Descongela lo disponible
 		let transaction = await tronWeb.transactionBuilder.withdrawExpireUnfreeze("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
 		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
 		transaction = await tronWeb.trx.sendRawTransaction(transaction);
 	
-		console.log("se descongelaron "+descongelando+" TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
-		await delay(40)
+		console.log("se descongelaron "+descongelando.shiftedBy(-6).toString(10)+" TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
+		await delay(60)
 
 		//enviar lo descongelado al contrato de retiro
 
-		let transaction_2 = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", "1", "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
+		let transaction_2 = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", descongelando.toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
 		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_1, 4);
 		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_2, 4);
 
@@ -324,11 +324,12 @@ async function retirarTrxContrato() {
 
 	}
 
+	
+
 
 	let trxSolicitado = new BigNumber(await trxSolicitadoData())
 
 	// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
-
 
 	console.log("Solicitud: "+trxSolicitado.shiftedBy(-6).toString(10))
 
