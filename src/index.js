@@ -320,13 +320,11 @@ async function retirarTrxContrato() {
 	
 		console.log("Transferido a TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55: https://tronscan.io/#/transaction/" + transaction_2.txid)
 
-		await delay(3)
+		await delay(120)
 
 	}
 
 	
-
-
 	let trxSolicitado = new BigNumber(await trxSolicitadoData())
 
 	// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
