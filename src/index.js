@@ -322,64 +322,60 @@ async function retirarTrxContrato() {
 
 		await delay(120)
 
-	}
-
-	
-	let trxSolicitado = new BigNumber(await trxSolicitadoData())
-
-	// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
-
-	console.log("Solicitud: "+trxSolicitado.shiftedBy(-6).toString(10))
-
-	let diferencia = trxSolicitado.shiftedBy(-6).dp(0).shiftedBy(6)
-	console.log(diferencia.shiftedBy(-6).toNumber())
-
-	if(diferencia.shiftedBy(-6).toNumber() >= 1000 && true){
-
-		//solicita descongelacion
-
-		let transaction_3 = await tronWeb.transactionBuilder.unfreezeBalanceV2(diferencia.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
-		transaction_3 = await tronWeb.trx.multiSign(transaction_3, process.env.APP_PRIVATEKEY_PERM_1, 3);
-		transaction_3 = await tronWeb.trx.sendRawTransaction(transaction_3);
-	
-		console.log("https://tronscan.io/#/transaction/" + transaction_3.txid)
-
-		await delay(40)
-
-
-
 	}else{
 
+		let trxSolicitado = new BigNumber(await trxSolicitadoData())
 
-		let devolucion = trxSolicitado.times(-1)
+		// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
 
-		if(devolucion.toNumber() >= 1000 && false){
+		console.log("Solicitud: "+trxSolicitado.shiftedBy(-6).toString(10))
 
-			console.log("Devolución: "+devolucion.shiftedBy(-6).toString(10)+" TRX a la wallet madre")
+		let diferencia = trxSolicitado.shiftedBy(-6).dp(0).shiftedBy(6)
+		console.log(diferencia.shiftedBy(-6).toNumber())
 
-			// retirrar TRX del contrato
+		if(diferencia.shiftedBy(-6).toNumber() >= 1000 && true){
 
-			let tx = await contract_POOL_PROXY.redimTRX(devolucion.plus(1*10**6).toString(10)).send();
-			console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
+			//solicita descongelacion
 
-			await delay(3)
-
-
-			//enviarlo a la DWY                                                                         devolucion.toString(10)
-			let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY",devolucion.toString(10) , "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
-			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
-			transaction = await tronWeb.trx.sendRawTransaction(transaction);
+			let transaction_3 = await tronWeb.transactionBuilder.unfreezeBalanceV2(diferencia.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
+			transaction_3 = await tronWeb.trx.multiSign(transaction_3, process.env.APP_PRIVATEKEY_PERM_1, 3);
+			transaction_3 = await tronWeb.trx.sendRawTransaction(transaction_3);
 		
-			console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
+			console.log("https://tronscan.io/#/transaction/" + transaction_3.txid)
+
+			await delay(40)
+
+
+
+		}else{
+
+
+			let devolucion = trxSolicitado.times(-1)
+
+			if(devolucion.toNumber() >= 1000 && false){
+
+				console.log("Devolución: "+devolucion.shiftedBy(-6).toString(10)+" TRX a la wallet madre")
+
+				// retirrar TRX del contrato
+
+				let tx = await contract_POOL_PROXY.redimTRX(devolucion.plus(1*10**6).toString(10)).send();
+				console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
+
+				await delay(3)
+
+
+				//enviarlo a la DWY                                                                         devolucion.toString(10)
+				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY",devolucion.toString(10) , "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
+				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
+				transaction = await tronWeb.trx.sendRawTransaction(transaction);
+			
+				console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
+			}
+
+
 		}
 
-
 	}
-
-	
-
-
-	
 
 	return "ok"
 
