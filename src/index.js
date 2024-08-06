@@ -495,6 +495,8 @@ async function calculoBRST() {
 		let trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber() / 10 ** 6;
 		let trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
 		trxContractRetirosV4 = new BigNumber(trxContractRetirosV4).shiftedBy(-6);
+		let trxContractRetiros_fast = await tronWeb3.trx.getUnconfirmedBalance("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr");
+		trxContractRetiros_fast = new BigNumber(trxContractRetiros_fast).shiftedBy(-6);
 
 		console.log("-------------- EJECUCIÓN V4 ------------");
 		console.log("Ejecutor: " + account.wallet);
@@ -505,7 +507,9 @@ async function calculoBRST() {
 		console.log(" ")
 		console.log("Para retiros v4: " + trxContractRetirosV4 + " TRX")
 		console.log(" ")
-		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4))
+		console.log("Para retiros Rapidos: " + trxContractRetiros_fast + " TRX")
+		console.log(" ")
+		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4)+ parseFloat(trxContractRetiros_fast))
 		console.log("Total: " + total + " TRX");
 		console.log(" ")
 		console.log("Registro en Contrato V4: " + trxContractV4 + " TRX");
