@@ -509,7 +509,7 @@ async function calculoBRST() {
 		console.log(" ")
 		console.log("Para retiros Rapidos: " + trxContractRetiros_fast + " TRX")
 		console.log(" ")
-		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4)+ parseFloat(trxContractRetiros_fast))
+		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4)+ parseFloat(trxContractRetiros_fast)).toFixed(6)
 		console.log("Total: " + total + " TRX");
 		console.log(" ")
 		console.log("Registro en Contrato V4: " + trxContractV4 + " TRX");
