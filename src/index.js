@@ -904,13 +904,16 @@ app.post(URL + 'alquilar/energia', async (req, res) => {
 	console.log(req.body)
 
 	let transaction = req.body.transaction
+	let wallet = req.body.wallet
+	let amount = req.body.amount
+	let time = req.body.time
+	let payout = req.body.payout
 
+	
 	console.log(transaction)
 	transaction = await tronWeb.trx.sendRawTransaction(transaction)
 
 	console.log(transaction)
-
-
 	if (transaction.code) {
 
 		res.status(200).send("error")
@@ -918,8 +921,11 @@ app.post(URL + 'alquilar/energia', async (req, res) => {
 
 	} else {
 
-		res.status(200).send("ok")
+		//alquilar energia
 
+
+
+		res.status(200).send("ok")
 
 	}
 
