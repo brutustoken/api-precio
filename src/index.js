@@ -44,6 +44,7 @@ const addressContractlottery = "TKghr3aZvCbo41c8y5vUXofChF1gMmjTHr";
 
 const develop = process.env.APP_develop || "false";
 
+let lastTimeBrut = 0;
 let lastPriceBrut;
 let lastPriceTRX = 0.123;
 
@@ -405,17 +406,21 @@ async function actualizarPrecioBRUTContrato() {
 }
 
 async function precioBRUT() {
-	let precio = await fetch(API).then((res) => { return res.json() }).catch(error => { console.error(error) })
+	let precio = lastPriceBrut
 
-	precio = (precio.values[0][0]).replace(',', '.');
-	precio = parseFloat(precio);
+	if(Date.now() >= lastTimeBrut+900*1000 ){
+		precio = await fetch(API).then((res) => { return res.json() }).catch(error => { console.error(error) })
+		precio = (precio.values[0][0]).replace(',', '.');
+		precio = parseFloat(precio);
 
-	if (isNaN(precio)) {
-		precio = lastPriceBrut;
-	} else {
+		if (isNaN(precio)) {
+			precio = lastPriceBrut;
+		}
+
 		lastPriceBrut = precio;
-		console.log("Ultimo precio guardado: {BRUT: " + lastPriceBrut + "}")
+		lastTimeBrut = Date.now();
 
+		console.log("Ultimo precio guardado: {BRUT: " + lastPriceBrut + "}")
 	}
 
 	let contract = await tronWeb3.contract().at(addressContract);
