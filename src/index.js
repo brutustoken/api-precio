@@ -173,6 +173,8 @@ if (develop === "false") {
 
 		console.log("ejecutando funciones tests")
 
+		//retirarTrxContrato()
+
 		//sendTrxSR()
 
 
@@ -293,7 +295,7 @@ async function guardarDatos(temp) {
 
 async function retirarTrxContrato() {
 
-	console.log("Retiros Automatios")
+	console.log("Retiros Automaticos")
 
 	let descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now())
 
@@ -333,7 +335,7 @@ async function retirarTrxContrato() {
 		let diferencia = trxSolicitado.shiftedBy(-6).dp(0).shiftedBy(6)
 		console.log(diferencia.shiftedBy(-6).toNumber())
 
-		if(diferencia.shiftedBy(-6).toNumber() >= 1000 && true){
+		if(diferencia.shiftedBy(-6).toNumber() >= 1 && true){
 
 			//solicita descongelacion
 
@@ -525,11 +527,11 @@ async function calculoBRST() {
 		// ajusta las ganancias
 		if (diferenciaV4 > tolerancia) {
 			await contract_POOL_PROXY.gananciaDirecta(parseInt(diferenciaV4 * 10 ** 6)).send()
-				.then((h) => {
-					console.log("[Ejecución: ganancia directa (" + diferenciaV4 + ") " + h + "]");
+			.then((h) => {
+				console.log("[Ejecución: ganancia directa (" + diferenciaV4 + ") " + h + "]");
 
-				})
-				.catch((err) => { console.log(err) });
+			})
+			.catch((err) => { console.log(err) });
 		}
 
 		// ajusta las perdidas
@@ -538,10 +540,10 @@ async function calculoBRST() {
 
 			let calculo = parseInt(diferenciaV4 * 10 ** 6);
 			await contract_POOL_PROXY.asignarPerdida(calculo).send()
-				.then((h) => {
-					console.log("[Ejecución: Ajuste diferencia Negativa (-" + diferenciaV4 + ") -> " + calculo + " | " + h + " ]");
-				})
-				.catch((err) => { console.log(err) })
+			.then((h) => {
+				console.log("[Ejecución: Ajuste diferencia Negativa (-" + diferenciaV4 + ") -> " + calculo + " | " + h + " ]");
+			})
+			.catch((err) => { console.log(err) })
 
 		}
 	} else {
