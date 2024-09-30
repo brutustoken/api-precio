@@ -41,6 +41,7 @@ const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyou
 
 const addressContractPoolProxy = process.env.APP_CONTRACT_POOL_PROXY || "TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55";
 const addressContractlottery = "TKghr3aZvCbo41c8y5vUXofChF1gMmjTHr";
+const addressContractFastWitdraw = "TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr";
 
 const develop = process.env.APP_develop || "false";
 
@@ -174,6 +175,8 @@ if (develop === "false") {
 
 		console.log("ejecutando funciones tests")
 
+		await calculoBRST()
+
 		//retirarTrxContrato()
 
 		//sendTrxSR()
@@ -231,12 +234,6 @@ async function llenarWhiteList() {
 
 
 	if (premio > apartado && true) {
-		await contract_POOL_PROXY.setDisponible(premio.plus(1 * 10 ** 6).toString(10)).send()
-			.then((h) => {
-				console.log("[Ejecución: llenado white List Lottery " + h + "]");
-
-			})
-			.catch((err) => { console.log(err) });
 	}
 
 	// si es tiempo de sorteo sortea
@@ -249,13 +246,12 @@ async function llenarWhiteList() {
 
 	if (parseInt(Date.now() / 1000) > tiempoSorteo) {
 
-		await contract_LOTTERY.sorteo().send()
+		await contract_LOTTERY.sorteo(true).send()
 			.then((h) => {
 				console.log("[Ejecución: Sorteo Lottery " + h + "]");
 
 			})
 			.catch((err) => { console.log(err) });
-
 
 
 	}
@@ -502,7 +498,8 @@ async function calculoBRST() {
 		let trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber() / 10 ** 6;
 		let trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
 		trxContractRetirosV4 = new BigNumber(trxContractRetirosV4).shiftedBy(-6);
-		let trxContractRetiros_fast = await tronWeb3.trx.getUnconfirmedBalance("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr");
+
+		let trxContractRetiros_fast = await tronWeb3.trx.getUnconfirmedBalance(addressContractFastWitdraw);
 		trxContractRetiros_fast = new BigNumber(trxContractRetiros_fast).shiftedBy(-6);
 
 		console.log("-------------- EJECUCIÓN V4 ------------");
