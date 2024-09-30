@@ -244,7 +244,7 @@ async function llenarWhiteList() {
 	//console.log(tiempoSorteo)
 
 
-	if (parseInt(Date.now() / 1000) > tiempoSorteo) {
+	if (parseInt(Date.now() / 1000) > tiempoSorteo && false) {
 
 		await contract_LOTTERY.sorteo(true).send()
 			.then((h) => {
