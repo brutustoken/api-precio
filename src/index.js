@@ -123,13 +123,15 @@ if (develop === "false") {
 		console.log('>Running: ' + new Date().toLocaleString());
 		console.log('-----------------------------------');
 
-		//Lottery functions PoolBRST
-		llenarWhiteList();
+		
 
 		//brutus functions
 		await comprarBRST();
 		await calculoBRST();
 		await actualizarPrecioBRUTContrato();
+
+		//sorteo loteria
+		await llenarWhiteList();
 
 		console.log('=>Done: ' + new Date().toLocaleString());
 
@@ -175,16 +177,10 @@ if (develop === "false") {
 
 		console.log("ejecutando funciones tests")
 
-		await calculoBRST()
+		//await calculoBRST();
 
-		//retirarTrxContrato()
-
-		//sendTrxSR()
-
-
-		//solicita unstaking del trx y retira el trx al contrato
-		//devuelve el TRX sobrante a la billetera madre
-
+		//sorteo loteria
+		//await llenarWhiteList();
 
 
 
@@ -221,30 +217,15 @@ async function sendTrxSR(balance) {
 
 async function llenarWhiteList() {
 
-	// consultar necesario en Lottery
-
-	let premio = await contract_LOTTERY._premio().call()
-	premio = new BigNumber(premio[0]._hex)
-
-
-	//meter lo necesario en el whitelist del Pool
-
-	let apartado = await contract_POOL_PROXY.totalDisponible().call();
-	apartado = new BigNumber(apartado._hex)
-
-
-	if (premio > apartado && true) {
-	}
 
 	// si es tiempo de sorteo sortea
 
 
 	let tiempoSorteo = await contract_LOTTERY.proximaRonda().call();
 	tiempoSorteo = new BigNumber(tiempoSorteo._hex).toNumber()
-	//console.log(tiempoSorteo)
 
 
-	if (parseInt(Date.now() / 1000) > tiempoSorteo && false) {
+	if (parseInt(Date.now() / 1000) > tiempoSorteo && true) {
 
 		await contract_LOTTERY.sorteo(true).send()
 			.then((h) => {
@@ -686,38 +667,6 @@ app.get(URL + 'data/:peticion', async (req, res) => {
 
 });
 
-/*
-app.get(URL+'ajuste',async(req,res) => {
-
-	const contractPool = await tronWeb.contract().at(addressPool);
-	let response = {};
-	// añade trx a la cuenta 
-	if(false){
-		//tronWeb.toSun()
-		let tx1 = await contractPool.gananciaDirecta(tronWeb.toSun(287)).send();
-		response.tx1 = "[Ejecución Contrato: "+tx1+"]";
-	}
-	// imprime los tokens
-	if(false){
-		let tx2 = await contractPool.crearBRTS(1).send();
-		response.tx2 = "[Ejecución Contrato: "+tx2+"]";
-	}
-	// transfiere los tokens --- en proceso no usar
-	if(false){
-		let tx3 = await contractPool.gananciaDirecta(1).send();
-		response.tx3 = "[Ejecución Contrato: "+tx3+"]";
-	}
-	// retira trx de las ganancias
-	if(false){
-		let tx4 = await contractPool.asignarPerdida(1).send();
-		response.tx4 = "[Ejecución Contrato: "+tx4+"]";
-	}
-   
-	res.send(response);
-
-});
-*/
-
 async function chart(moneda, limite, temporalidad) {
 
 	let Operador = PrecioBRST
@@ -899,7 +848,7 @@ async function trxSolicitadoData() {
 
 app.get(URL + 'tron/solicitado', async (req, res) => {
 
-	res.status(200).send({ trx: await trxSolicitado() })
+	res.status(200).send({ trx: await trxSolicitadoData() })
 })
 
 
