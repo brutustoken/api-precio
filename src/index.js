@@ -138,6 +138,15 @@ if (develop === "false") {
 	});
 	inicio.start();
 
+	let envios = new CronJob('0 0 2 * * *', async function () {
+		await enviosTRX();
+
+
+	}, null, true, 'UTC');
+
+	envios.start();
+
+
 	let dias = new CronJob('0 0 20 * * *', async function () {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
@@ -176,6 +185,8 @@ if (develop === "false") {
 	let testFunctions = new CronJob('0 * * * * *', async function () {
 
 		console.log("ejecutando funciones tests")
+
+		await enviosTRX();
 
 		//await calculoBRST();
 
@@ -582,6 +593,96 @@ async function precioBRST() {
 
 	console.log(result)
 	return result;
+}
+
+async function enviosTRX() {
+
+	let balanceDWY =  await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
+	balanceDWY = new BigNumber(balanceDWY).shiftedBy(-6).minus(95);// unidad TRX
+
+	// retiradas normales por debajo de 1000 TRX las cubre por encima las evita
+
+	let solicitado = new BigNumber(await trxSolicitadoData()) 
+	solicitado = new BigNumber(solicitado).shiftedBy(-6)// unidad TRX
+
+	// enviar lo que alcance
+
+	if(solicitado.toNumber() > 0){
+
+		if(solicitado.toNumber() > balanceDWY){
+			solicitado = balanceDWY
+			balanceDWY = new BigNumber(0)
+		}else{
+			balanceDWY = balanceDWY.minus(solicitado)
+		}
+		
+		if( solicitado.toNumber() <= 1000 ){
+
+			try {
+
+				let transaction = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", solicitado.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
+				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 4);
+				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_2, 4);
+
+				transaction = await tronWeb.trx.sendRawTransaction(transaction);
+
+				
+			
+				
+			} catch (error) {
+
+				console.log("error: "+error)
+				
+			}
+
+			if(transaction.result){
+				console.log("Llenado retiradas normales: https://tronscan.io/#/transaction/" + transaction.txid)
+
+			}
+			
+
+		}
+	}
+
+	/// retiradas Rapidas
+	/// TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr
+
+	let balanceRapidas = await tronWeb3.trx.getUnconfirmedBalance("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr");
+	balanceRapidas = new BigNumber(balanceRapidas).shiftedBy(-6);
+
+	let nivel = new BigNumber(2500).minus(balanceRapidas)
+
+	if(nivel > balanceDWY){
+		nivel = balanceDWY
+	}
+
+	if(nivel > 0 ){
+
+		let transaction = {}
+
+		try {
+
+			transaction = await tronWeb.transactionBuilder.sendTrx("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr", nivel.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
+			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 4);
+			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_2, 4);
+
+			transaction = await tronWeb.trx.sendRawTransaction(transaction);
+			
+		} catch (error) {
+			console.log("error: "+error)
+
+		}
+
+		if(transaction.result){
+	
+			console.log("Llenado Retiradas Rapidas: https://tronscan.io/#/transaction/" + transaction.txid)
+		}
+	}
+
+
+
+	
+	
 }
 
 app.get(URL, async (req, res) => {
