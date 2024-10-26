@@ -910,7 +910,6 @@ app.get(URL + 'solicitudes/retiro', async (req, res) => {
 	const contractPool = await tronWeb2.contract().at(addressContractPool);
 
 	let deposits = await contractPool.solicitudesPendientesGlobales().call();
-	let globRetiros = [];
 
 	let tiempo = (await contractPool.TIEMPO().call()).toNumber() * 1000;
 	let diasDeEspera = (tiempo / (86400 * 1000)).toPrecision(2)
