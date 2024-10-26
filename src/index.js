@@ -47,7 +47,7 @@ const develop = process.env.APP_develop || "false";
 
 let lastTimeBrut = 0;
 let lastPriceBrut;
-let lastPriceTRX = 0.123;
+let lastPriceTRX = 0.15;
 
 mongoose.set('strictQuery', false);
 mongoose.connect(uriMongoDB)
@@ -68,6 +68,12 @@ const Precios = new Schema({
 
 const PrecioBRST = mongoose.model('brst 2', Precios);
 const PrecioBRUT = mongoose.model('bruts 2', Precios);
+
+const ApiKey = new Schema({
+	next: Number,
+});
+
+const Api_key = mongoose.model('apikeys', ApiKey);
 
 let lastTimeBRUT;
 
@@ -987,5 +993,41 @@ app.post(URL + 'alquilar/energia', async (req, res) => {
 
 
 })
+
+app.get(URL + 'selector/apikey', async (req, res) => {
+	let lista = process.env.lista_api_key.split(",")
+	let result = {"ok": false}
+	let idKey = await Api_key.findOne({})
+
+	if(idKey === null){
+
+		let instance = new Api_key({
+			next:idKey+1
+	
+		});
+	
+		instance.save({});
+
+		idKey = 0
+	}else{
+		idKey = idKey.next
+	}
+
+	//console.log(idKey)
+
+	if(lista.length > 0){
+		result.ok = true
+		if(idKey > lista.length ){
+			idKey = 0
+		}
+		result.apikey = lista[idKey]
+
+		await Api_key.updateOne({},{next:idKey+1})
+	}else{
+		result.error = "no apikeys saved"
+	}
+
+	res.send(result);
+});
 
 app.listen(port, () => console.log('Escuchando Puerto: ' + port))
