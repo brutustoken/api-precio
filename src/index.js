@@ -236,8 +236,6 @@ async function llenarWhiteList() {
 
 
 	// si es tiempo de sorteo sortea
-
-
 	let tiempoSorteo = await contract_LOTTERY.proximaRonda().call();
 	tiempoSorteo = new BigNumber(tiempoSorteo._hex).toNumber()
 
@@ -294,7 +292,7 @@ async function retirarTrxContrato() {
 
 	let descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now())
 
-	console.log("Esta pa descongelar: ",descongelando)
+	console.log("Esta para descongelar: ",descongelando)
 
 	if (descongelando.amount && true) {
 		descongelando = new BigNumber(descongelando.amount)
@@ -658,11 +656,11 @@ async function enviosTRX() {
 
 	let nivel = new BigNumber(2500).minus(balanceRapidas)
 
-	if(nivel > balanceDWY){
+	if(nivel.toNumber() > balanceDWY.toNumber()){
 		nivel = balanceDWY
 	}
 
-	if(nivel > 0 ){
+	if(nivel.toNumber() > 0 ){
 
 		let transaction = {}
 
