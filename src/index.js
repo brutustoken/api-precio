@@ -1,5 +1,7 @@
 const abi_POOLBRST = require("./abi/PoolBRSTv4");
 const abi_LOTTERY = require("./abi/Lottery");
+const abi_SwapV3 = require("./abi/swapV3");
+
 
 const express = require('express');
 const TronWeb = require('tronweb');
@@ -118,6 +120,9 @@ contract_POOL_PROXY = tronWeb3.contract(abi_POOLBRST, addressContractPoolProxy)
 let contract_LOTTERY = {}
 contract_LOTTERY = tronWeb3.contract(abi_LOTTERY, addressContractlottery)
 
+let contract_SWAPV3 = {}
+contract_SWAPV3 = tronWeb3.contract(abi_SwapV3, addressContractFastWitdraw)
+
 precioBRUT()
 
 
@@ -197,7 +202,7 @@ if (develop === "false") {
 		//await calculoBRST();
 
 		//sorteo loteria
-		//await llenarWhiteList();
+		await llenarWhiteList();
 
 
 
@@ -239,8 +244,16 @@ async function llenarWhiteList() {
 	let tiempoSorteo = await contract_LOTTERY.proximaRonda().call();
 	tiempoSorteo = new BigNumber(tiempoSorteo._hex).toNumber()
 
+	tiempoSorteo = parseInt(Date.now() / 1000) > tiempoSorteo
 
-	if (parseInt(Date.now() / 1000) > tiempoSorteo && true) {
+	let balanceT1 = new BigNumber((await contract_SWAPV3.balance_token_1().call())._hex).toNumber()
+
+	let premio = await contract_LOTTERY._premio().call()
+	premio = new BigNumber(premio.prix._hex).toNumber()
+
+	console.log(balanceT1,premio)
+
+	if (tiempoSorteo && balanceT1 >= premio && true) {
 
 		await contract_LOTTERY.sorteo(true).send()
 			.then((h) => {
