@@ -202,7 +202,7 @@ if (develop === "false") {
 		//await calculoBRST();
 
 		//sorteo loteria
-		await llenarWhiteList();
+		//await llenarWhiteList();
 
 
 
@@ -251,7 +251,7 @@ async function llenarWhiteList() {
 	let premio = await contract_LOTTERY._premio().call()
 	premio = new BigNumber(premio.prix._hex).toNumber()
 
-	console.log(balanceT1,premio)
+	//console.log(balanceT1,premio)
 
 	if (tiempoSorteo && balanceT1 >= premio && true) {
 
