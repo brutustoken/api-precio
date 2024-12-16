@@ -10,6 +10,8 @@ const mongoose = require('mongoose');
 const BigNumber = require('bignumber.js');
 const CronJob = require('cron').CronJob;
 
+const Cryptr = require('cryptr');
+var md5 = require('md5');
 
 let cors = require('cors');
 require('dotenv').config();
@@ -134,7 +136,7 @@ if (develop === "false") {
 		console.log('>Running: ' + new Date().toLocaleString());
 		console.log('-----------------------------------');
 
-		
+
 
 		//brutus functions
 		await comprarBRST();
@@ -305,7 +307,7 @@ async function retirarTrxContrato() {
 
 	let descongelando = await tronWeb3.trx.getCanWithdrawUnfreezeAmount("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", Date.now())
 
-	console.log("Esta para descongelar: ",descongelando)
+	console.log("Esta para descongelar: ", descongelando)
 
 	if (descongelando.amount && true) {
 		descongelando = new BigNumber(descongelando.amount)
@@ -314,8 +316,8 @@ async function retirarTrxContrato() {
 		let transaction = await tronWeb.transactionBuilder.withdrawExpireUnfreeze("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
 		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
 		transaction = await tronWeb.trx.sendRawTransaction(transaction);
-	
-		console.log("se descongelaron "+descongelando.shiftedBy(-6).toString(10)+" TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
+
+		console.log("se descongelaron " + descongelando.shiftedBy(-6).toString(10) + " TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
 		await delay(60)
 
 		//enviar lo descongelado al contrato de retiro
@@ -325,58 +327,58 @@ async function retirarTrxContrato() {
 		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_2, 4);
 
 		transaction_2 = await tronWeb.trx.sendRawTransaction(transaction_2);
-	
+
 		console.log("Transferido a TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55: https://tronscan.io/#/transaction/" + transaction_2.txid)
 
 		await delay(120)
 
-	}else{
+	} else {
 
 		let trxSolicitado = new BigNumber(await trxSolicitadoData())
 
 		// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
 
-		console.log("Solicitud: "+trxSolicitado.shiftedBy(-6).toString(10))
+		console.log("Solicitud: " + trxSolicitado.shiftedBy(-6).toString(10))
 
 		let diferencia = trxSolicitado.shiftedBy(-6).dp(0).shiftedBy(6)
 		console.log(diferencia.shiftedBy(-6).toNumber())
 
-		if(diferencia.shiftedBy(-6).toNumber() >= 1 && true){
+		if (diferencia.shiftedBy(-6).toNumber() >= 1 && true) {
 
 			//solicita descongelacion
 
 			let transaction_3 = await tronWeb.transactionBuilder.unfreezeBalanceV2(diferencia.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
 			transaction_3 = await tronWeb.trx.multiSign(transaction_3, process.env.APP_PRIVATEKEY_PERM_1, 3);
 			transaction_3 = await tronWeb.trx.sendRawTransaction(transaction_3);
-		
+
 			console.log("https://tronscan.io/#/transaction/" + transaction_3.txid)
 
 			await delay(40)
 
 
 
-		}else{
+		} else {
 
 
 			let devolucion = trxSolicitado.times(-1)
 
-			if(devolucion.toNumber() >= 1000 && false){
+			if (devolucion.toNumber() >= 1000 && false) {
 
-				console.log("Devolución: "+devolucion.shiftedBy(-6).toString(10)+" TRX a la wallet madre")
+				console.log("Devolución: " + devolucion.shiftedBy(-6).toString(10) + " TRX a la wallet madre")
 
 				// retirrar TRX del contrato
 
-				let tx = await contract_POOL_PROXY.redimTRX(devolucion.plus(1*10**6).toString(10)).send();
+				let tx = await contract_POOL_PROXY.redimTRX(devolucion.plus(1 * 10 ** 6).toString(10)).send();
 				console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
 
 				await delay(3)
 
 
 				//enviarlo a la DWY                                                                         devolucion.toString(10)
-				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY",devolucion.toString(10) , "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
+				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", devolucion.toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
 				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
 				transaction = await tronWeb.trx.sendRawTransaction(transaction);
-			
+
 				console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
 			}
 
@@ -413,7 +415,7 @@ async function actualizarPrecioBRUTContrato() {
 async function precioBRUT() {
 	let precio = lastPriceBrut
 
-	if(Date.now() >= lastTimeBrut+900*1000 ){
+	if (Date.now() >= lastTimeBrut + 900 * 1000) {
 		precio = await fetch(API).then((res) => { return res.json() }).catch(error => { console.error(error) })
 		precio = (precio.values[0][0]).replace(',', '.');
 		precio = parseFloat(precio);
@@ -522,7 +524,7 @@ async function calculoBRST() {
 		console.log(" ")
 		console.log("Para retiros Rapidos: " + trxContractRetiros_fast + " TRX")
 		console.log(" ")
-		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4)+ parseFloat(trxContractRetiros_fast)).toFixed(6)
+		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4) + parseFloat(trxContractRetiros_fast)).toFixed(6)
 		console.log("Total: " + total + " TRX");
 		console.log(" ")
 		console.log("Registro en Contrato V4: " + trxContractV4 + " TRX");
@@ -538,11 +540,11 @@ async function calculoBRST() {
 		// ajusta las ganancias
 		if (diferenciaV4 > tolerancia) {
 			await contract_POOL_PROXY.gananciaDirecta(parseInt(diferenciaV4 * 10 ** 6)).send()
-			.then((h) => {
-				console.log("[Ejecución: ganancia directa (" + diferenciaV4 + ") " + h + "]");
+				.then((h) => {
+					console.log("[Ejecución: ganancia directa (" + diferenciaV4 + ") " + h + "]");
 
-			})
-			.catch((err) => { console.log(err) });
+				})
+				.catch((err) => { console.log(err) });
 		}
 
 		// ajusta las perdidas
@@ -551,10 +553,10 @@ async function calculoBRST() {
 
 			let calculo = parseInt(diferenciaV4 * 10 ** 6);
 			await contract_POOL_PROXY.asignarPerdida(calculo).send()
-			.then((h) => {
-				console.log("[Ejecución: Ajuste diferencia Negativa (-" + diferenciaV4 + ") -> " + calculo + " | " + h + " ]");
-			})
-			.catch((err) => { console.log(err) })
+				.then((h) => {
+					console.log("[Ejecución: Ajuste diferencia Negativa (-" + diferenciaV4 + ") -> " + calculo + " | " + h + " ]");
+				})
+				.catch((err) => { console.log(err) })
 
 		}
 	} else {
@@ -614,26 +616,26 @@ async function precioBRST() {
 
 async function enviosTRX() {
 
-	let balanceDWY =  await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
+	let balanceDWY = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
 	balanceDWY = new BigNumber(balanceDWY).shiftedBy(-6).minus(95);// unidad TRX
 
 	// retiradas normales por debajo de 1000 TRX las cubre por encima las evita
 
-	let solicitado = new BigNumber(await trxSolicitadoData()) 
+	let solicitado = new BigNumber(await trxSolicitadoData())
 	solicitado = new BigNumber(solicitado).shiftedBy(-6)// unidad TRX
 
 	// enviar lo que alcance
 
-	if(solicitado.toNumber() > 0){
+	if (solicitado.toNumber() > 0) {
 
-		if(solicitado.toNumber() > balanceDWY){
+		if (solicitado.toNumber() > balanceDWY) {
 			solicitado = balanceDWY
 			balanceDWY = new BigNumber(0)
-		}else{
+		} else {
 			balanceDWY = balanceDWY.minus(solicitado)
 		}
-		
-		if( solicitado.toNumber() <= 1000 ){
+
+		if (solicitado.toNumber() <= 1000) {
 
 			try {
 
@@ -643,20 +645,20 @@ async function enviosTRX() {
 
 				transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
-				
-			
-				
+
+
+
 			} catch (error) {
 
-				console.log("error: "+error)
-				
+				console.log("error: " + error)
+
 			}
 
-			if(transaction.result){
+			if (transaction.result) {
 				console.log("Llenado retiradas normales: https://tronscan.io/#/transaction/" + transaction.txid)
 
 			}
-			
+
 
 		}
 	}
@@ -669,11 +671,11 @@ async function enviosTRX() {
 
 	let nivel = new BigNumber(2500).minus(balanceRapidas)
 
-	if(nivel.toNumber() > balanceDWY.toNumber()){
+	if (nivel.toNumber() > balanceDWY.toNumber()) {
 		nivel = balanceDWY
 	}
 
-	if(nivel.toNumber() > 0 ){
+	if (nivel.toNumber() > 0) {
 
 		let transaction = {}
 
@@ -684,22 +686,22 @@ async function enviosTRX() {
 			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_2, 4);
 
 			transaction = await tronWeb.trx.sendRawTransaction(transaction);
-			
+
 		} catch (error) {
-			console.log("error: "+error)
+			console.log("error: " + error)
 
 		}
 
-		if(transaction.result){
-	
+		if (transaction.result) {
+
 			console.log("Llenado Retiradas Rapidas: https://tronscan.io/#/transaction/" + transaction.txid)
 		}
 	}
 
 
 
-	
-	
+
+
 }
 
 app.get(URL, async (req, res) => {
@@ -979,7 +981,7 @@ app.post(URL + 'alquilar/energia', async (req, res) => {
 	let time = req.body.time
 	let payout = req.body.payout
 
-	
+
 	console.log(transaction)
 	transaction = await tronWeb.trx.sendRawTransaction(transaction)
 
@@ -1004,40 +1006,147 @@ app.post(URL + 'alquilar/energia', async (req, res) => {
 
 })
 
+createSecret("comandomijo")
+
+function createSecret(user) {
+
+	user = md5(user)
+
+	secret = getSecret(user)
+
+	console.log({ user, secret })
+	return { user, secret }
+
+}
+
+function getSecret(userMd5) {
+
+	secret = TronWeb.sha3(userMd5 + process.env.APP_SECRETY)
+	secret = secret.split('0x')[1]
+
+	return secret
+
+}
+
+app.post(URL + 'rent/energy', async (req, res) => {
+
+	//user["md5"]=>key
+
+	//console.log(req.body)
+
+	let response = { result: false };
+
+	let { data, user } = req.body
+
+	let secret = getSecret(user)
+
+	console.log(secret)
+
+	const cryptr = new Cryptr(secret);
+	const decryptedString = cryptr.decrypt(data);
+
+	data = JSON.parse(decryptedString)
+
+	console.log(data)
+
+
+	if (data.expire && data.transaction && data.wallet && data.precio && data.to_address && data.amount && data.duration && data.resource && data.id_api && data.token) {
+
+		hash = await tronWeb.trx.sendRawTransaction(data.transaction)
+
+		let envio = hash.transaction.raw_data.contract[0].parameter.value
+
+		if (hash.result && envio.amount >= parseInt(data.precio) && TronWeb.address.fromHex(envio.to_address) === data.to_address) {
+
+			await delay(3)
+			hash = await tronWeb.trx.getTransaction(hash.txid);
+
+			if (hash.ret[0].contractRet === "SUCCESS") {
+
+				let url = "" + process.env.REACT_APP_BOT_URL + data.resource //energy : bandwidth
+
+				let body1 = {
+					"id_api": data.id_api,
+					"wallet": data.wallet,
+					"amount": data.amount,
+					"time": data.duration,
+					"user_id": "api-precio:" + hash.txid
+				}
+
+				let consulta2 = await fetch(url, {
+					method: "POST",
+					headers: {
+						'token-api': data.token,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(body1)
+				})
+				.then((r) => r.json())
+				.catch((e)=>console.log(e))
+
+				console.log(consulta2)
+
+				if (consulta2.response === 1) {
+
+					response.result = true
+
+				}else{
+					response.error = true
+					response.msg = consulta2.msg
+					response.hash = hash.txID
+					response.point = "Bot-API"
+				}
+
+			}
+
+
+		}
+
+
+
+
+
+	}
+
+	res.status(200).send(response)
+
+
+})
+
 app.get(URL + 'selector/apikey', async (req, res) => {
 	let lista = process.env.lista_api_key.split(",")
-	let result = {"ok": false}
+	let result = { "ok": false }
 	let idKey = await Api_key.findOne({})
 
-	if(idKey === null){
+	if (idKey === null) {
 
 		let instance = new Api_key({
-			next:idKey+1
-	
+			next: idKey + 1
+
 		});
-	
+
 		instance.save({});
 
 		idKey = 0
-	}else{
+	} else {
 		idKey = idKey.next
 	}
 
 	//console.log(idKey)
 
-	if(lista.length > 0){
+	if (lista.length > 0) {
 		result.ok = true
-		if(idKey > lista.length ){
+		if (idKey > lista.length) {
 			idKey = 0
 		}
 		result.apikey = lista[idKey]
 
-		await Api_key.updateOne({},{next:idKey+1})
-	}else{
+		await Api_key.updateOne({}, { next: idKey + 1 })
+	} else {
 		result.error = "no apikeys saved"
 	}
 
 	res.send(result);
 });
 
-app.listen(port, () => console.log('Escuchando Puerto: ' + port))
+app.listen(port, () => console.log('Escuchando: http://localhost:' + port+'/api/v1'))
