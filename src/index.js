@@ -1007,6 +1007,7 @@ app.post(URL + 'alquilar/energia', async (req, res) => {
 })
 
 createSecret("comandomijo")
+console.log(getSecret("9650f24d09200d8d0e1b31fd9eab8b55"))
 
 function createSecret(user) {
 
@@ -1028,7 +1029,98 @@ function getSecret(userMd5) {
 
 }
 
-function rentEnergy(data, user){
+function decrypData(data, user){
+
+	let secret = getSecret(user)
+
+	console.log(secret)
+
+	const cryptr = new Cryptr(secret);
+	const decryptedString = cryptr.decrypt(data);
+
+	data = JSON.parse(decryptedString)
+
+	console.log(data)
+	return data
+}
+
+async function rentEnergy({expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token}){
+
+	result = {result:false}
+
+	if (expire && transaction && wallet && precio && to_address && amount && duration && resource && id_api && token) {
+
+		hash = await tronWeb.trx.sendRawTransaction(transaction)
+
+		let envio = hash.transaction.raw_data.contract[0].parameter.value
+
+		if (hash.result && envio.amount >= parseInt(precio) && TronWeb.address.fromHex(envio.to_address) === to_address) {
+
+			await delay(3)
+			hash = await tronWeb.trx.getTransaction(hash.txid);
+
+			if (hash.ret[0].contractRet === "SUCCESS") {
+
+				let url = "" + process.env.REACT_APP_BOT_URL + resource //energy : bandwidth
+
+				let body1 = {
+					"id_api": id_api,
+					"wallet": wallet,
+					"amount": amount,
+					"time": duration,
+					"user_id": "api-precio:" + hash.txid
+				}
+
+				let consulta2 = await fetch(url, {
+					method: "POST",
+					headers: {
+						'token-api': token,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(body1)
+				})
+				.then((r) => r.json())
+				.catch((e)=>console.log(e))
+
+				console.log(consulta2)
+
+				if (consulta2.response === 1) {
+
+					result.result = true
+
+				}else{
+					result.error = true
+					result.msg = consulta2.msg
+					result.hash = hash.txID
+					result.point = "Bot-API"
+				}
+
+			}else{
+				result.error = true
+				result.msg = "Not SUCCESS"
+				result.hash = hash.txID
+				result.point = "Main-API"
+			}
+
+
+		}else{
+			result.error = true
+			result.msg = "Not Hash, Price, To address"
+			result.hash = hash.txID
+			result.point = "Main-API"
+		}
+
+	}else{
+
+		result.error = true
+		result.msg = "No parameters to start"
+		result.hash = hash.txID
+		result.point = "Main-API"
+
+
+	}
+
+	return result
 
 }
 
@@ -1042,84 +1134,17 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	let { data, user } = req.body
 
-	if(data && user){
-		let secret = getSecret(user)
-
-		console.log(secret)
-
-		const cryptr = new Cryptr(secret);
-		const decryptedString = cryptr.decrypt(data);
-	
-		data = JSON.parse(decryptedString)
-
-	}else{
+	if(!data || !user){
+		
 		response.error = true
 		response.msg = "No auth"
 
-		data = {}
+	}else{
+
+		response = await rentEnergy(decrypData(data, user))
+
 	}
 	
-
-	console.log(data)
-
-
-	if (data.expire && data.transaction && data.wallet && data.precio && data.to_address && data.amount && data.duration && data.resource && data.id_api && data.token) {
-
-		hash = await tronWeb.trx.sendRawTransaction(data.transaction)
-
-		let envio = hash.transaction.raw_data.contract[0].parameter.value
-
-		if (hash.result && envio.amount >= parseInt(data.precio) && TronWeb.address.fromHex(envio.to_address) === data.to_address) {
-
-			await delay(3)
-			hash = await tronWeb.trx.getTransaction(hash.txid);
-
-			if (hash.ret[0].contractRet === "SUCCESS") {
-
-				let url = "" + process.env.REACT_APP_BOT_URL + data.resource //energy : bandwidth
-
-				let body1 = {
-					"id_api": data.id_api,
-					"wallet": data.wallet,
-					"amount": data.amount,
-					"time": data.duration,
-					"user_id": "api-precio:" + hash.txid
-				}
-
-				let consulta2 = await fetch(url, {
-					method: "POST",
-					headers: {
-						'token-api': data.token,
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify(body1)
-				})
-				.then((r) => r.json())
-				.catch((e)=>console.log(e))
-
-				console.log(consulta2)
-
-				if (consulta2.response === 1) {
-
-					response.result = true
-
-				}else{
-					response.error = true
-					response.msg = consulta2.msg
-					response.hash = hash.txID
-					response.point = "Bot-API"
-				}
-
-			}
-
-
-		}
-
-
-
-
-
-	}
 
 	res.status(200).send(response)
 
