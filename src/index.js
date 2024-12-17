@@ -1033,14 +1033,11 @@ function decrypData(data, user){
 
 	let secret = getSecret(user)
 
-	console.log(secret)
-
 	const cryptr = new Cryptr(secret);
 	const decryptedString = cryptr.decrypt(data);
 
 	data = JSON.parse(decryptedString)
 
-	console.log(data)
 	return data
 }
 
