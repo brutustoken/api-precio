@@ -199,7 +199,7 @@ if (develop === "false") {
 
 		console.log("ejecutando funciones tests")
 
-		await enviosTRX();
+		//await enviosTRX();
 
 		//await calculoBRST();
 
@@ -1022,9 +1022,13 @@ function createSecret(user) {
 function getSecret(userMd5) {
 
 	secret = TronWeb.sha3(userMd5 + process.env.APP_SECRETY)
-	secret = secret.split('0x')[1]
+	secret = (secret.split('0x')[1]).toString(10)
 
 	return secret
+
+}
+
+function rentEnergy(data, user){
 
 }
 
@@ -1040,6 +1044,8 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	if(data && user){
 		let secret = getSecret(user)
+
+		console.log(secret)
 
 		const cryptr = new Cryptr(secret);
 		const decryptedString = cryptr.decrypt(data);
