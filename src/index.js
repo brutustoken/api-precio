@@ -1032,7 +1032,7 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	//user["md5"]=>key
 
-	//console.log(req.body)
+	console.log(req.body)
 
 	let response = { result: false };
 
