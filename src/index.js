@@ -1038,14 +1038,21 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	let { data, user } = req.body
 
-	let secret = getSecret(user)
+	if(data && user){
+		let secret = getSecret(user)
 
-	console.log(secret)
+		const cryptr = new Cryptr(secret);
+		const decryptedString = cryptr.decrypt(data);
+	
+		data = JSON.parse(decryptedString)
 
-	const cryptr = new Cryptr(secret);
-	const decryptedString = cryptr.decrypt(data);
+	}else{
+		response.error = true
+		response.msg = "No auth"
 
-	data = JSON.parse(decryptedString)
+		data = {}
+	}
+	
 
 	console.log(data)
 
