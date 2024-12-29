@@ -28,26 +28,29 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-const port = process.env.PORT || 3004;
-const API = process.env.APP_GOOGLE_API;
-const uriMongoDB = process.env.APP_URIMONGODB
 
-const API_last_BRUT = process.env.APP_GOOGLE_API_BRUT;
+const env = process.env
 
-const CAP_BRUT = process.env.APP_GOOGLE_API_CAP_BRUT;
-const CIRC_BRUT = process.env.APP_GOOGLE_API_CIRC_BRUT
+const port = env.PORT || 3004;
+const API = env.APP_GOOGLE_API;
+const uriMongoDB = env.APP_URIMONGODB
+
+const API_last_BRUT = env.APP_GOOGLE_API_BRUT;
+
+const CAP_BRUT = env.APP_GOOGLE_API_CAP_BRUT;
+const CIRC_BRUT = env.APP_GOOGLE_API_CIRC_BRUT
 
 
 const WALLET_SR = "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY";
 const TRONGRID_API = "https://api.trongrid.io";
-const addressContract = process.env.APP_CONTRACT || "TBRVNF2YCJYGREKuPKaP7jYYP9R1jvVQeq";
-const addressContractBrst = process.env.APP_CONTRACT_BRST || "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
+const addressContract = "TBRVNF2YCJYGREKuPKaP7jYYP9R1jvVQeq";
+const addressContractBrst = "TF8YgHqnJdWzCbUyouje3RYrdDKJYpGfB3";
 
-const addressContractPoolProxy = process.env.APP_CONTRACT_POOL_PROXY || "TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55";
+const addressContractPoolProxy = "TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55";
 const addressContractlottery = "TKghr3aZvCbo41c8y5vUXofChF1gMmjTHr";
 const addressContractFastWitdraw = "TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr";
 
-const develop = process.env.APP_develop || "false";
+const develop = env.APP_develop || "false";
 
 let lastTimeBrut = 0;
 let lastPriceBrut;
@@ -322,7 +325,7 @@ async function retirarTrxContrato() {
 
 		//enviar lo descongelado al contrato de retiro
 
-		let transaction_2 = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", descongelando.toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
+		let transaction_2 = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", descongelando.toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 4);
 		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_1, 4);
 		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_2, 4);
 
@@ -335,8 +338,6 @@ async function retirarTrxContrato() {
 	} else {
 
 		let trxSolicitado = new BigNumber(await trxSolicitadoData())
-
-		// si es positiva y mayor a 1000 trx hay que pedir descongelamiento
 
 		console.log("Solicitud: " + trxSolicitado.shiftedBy(-6).toString(10))
 
@@ -621,12 +622,17 @@ async function enviosTRX() {
 
 	// retiradas normales por debajo de 1000 TRX las cubre por encima las evita
 
-	let solicitado = new BigNumber(await trxSolicitadoData())
-	solicitado = new BigNumber(solicitado).shiftedBy(-6)// unidad TRX
+	let info = await infoContract()
+	info.sun_total = new BigNumber(info.sun_total)
+	info.sun_en_contrato = new BigNumber(info.sun_en_contrato)
 
-	// enviar lo que alcance
+	info.requerido = info.sun_total.minus(info.sun_en_contrato)
 
-	if (solicitado.toNumber() > 0) {
+	//let solicitado = new BigNumber(await trxSolicitadoData())
+	let solicitado = info.requerido.shiftedBy(-6)// unidad TRX
+
+	if (solicitado.toNumber() > 0 && balanceDWY > 1) {
+		// enviar lo que alcance
 
 		if (solicitado.toNumber() > balanceDWY) {
 			solicitado = balanceDWY
@@ -635,32 +641,25 @@ async function enviosTRX() {
 			balanceDWY = balanceDWY.minus(solicitado)
 		}
 
-		if (solicitado.toNumber() <= 1000) {
+		let transaction = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", solicitado.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 4);
 
-			try {
+		try {
 
-				let transaction = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", solicitado.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
-				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 4);
-				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_2, 4);
+			transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_1, 4);
+			transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_2, 4);
+			transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
-				transaction = await tronWeb.trx.sendRawTransaction(transaction);
+		} catch (error) {
+			console.log("error: " + error)
+		}
 
-
-
-
-			} catch (error) {
-
-				console.log("error: " + error)
-
-			}
-
-			if (transaction.result) {
-				console.log("Llenado retiradas normales: https://tronscan.io/#/transaction/" + transaction.txid)
-
-			}
-
+		if (transaction.result) {
+			console.log("Llenado retiradas normales: https://tronscan.io/#/transaction/" + transaction.txid)
 
 		}
+
+
+
 	}
 
 	/// retiradas Rapidas
@@ -681,7 +680,7 @@ async function enviosTRX() {
 
 		try {
 
-			transaction = await tronWeb.transactionBuilder.sendTrx("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr", nivel.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 2);
+			transaction = await tronWeb.transactionBuilder.sendTrx("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr", nivel.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 4);
 			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 4);
 			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_2, 4);
 
@@ -918,27 +917,22 @@ app.get(URL + 'consulta/marketcap/brut', async (req, res) => {
 
 })
 
-app.get(URL + 'solicitudes/retiro', async (req, res) => {
+async function infoContract() {
 	let result = { sun_total: 0, trx_total: 0 };
-	const contractPool = await tronWeb2.contract().at(addressContractPool);
-
-	let deposits = await contractPool.solicitudesPendientesGlobales().call();
+	const contractPool = await tronWeb2.contract(abi_POOLBRST, addressContractPoolProxy);
 
 	let tiempo = (await contractPool.TIEMPO().call()).toNumber() * 1000;
 	let diasDeEspera = (tiempo / (86400 * 1000)).toPrecision(2)
 
-	for (let index = 0; index < deposits.length; index++) {
+	let solicitud = await contractPool.TRON_SOLICITADO().call();
+	//console.log(solicitud)
+	result.sun_total += parseInt(solicitud._hex)
+	result.trx_total += parseInt(solicitud._hex) / 10 ** 6
 
-		let solicitud = await contractPool.verSolicitudPendiente(parseInt(deposits[index]._hex)).call();
-		//console.log(solicitud)
-		result.sun_total += parseInt(solicitud[2]._hex)
-		result.trx_total += parseInt(solicitud[2]._hex) / 10 ** 6
-	}
 
 	result.dias_espera = diasDeEspera
-	result.solicitudes = deposits.length
 
-	result.sun_en_contrato = await tronWeb.trx.getBalance(addressContractPool);
+	result.sun_en_contrato = await tronWeb.trx.getBalance(addressContractPoolProxy);
 
 	result.trx_en_contrato = result.sun_en_contrato / 10 ** 6
 
@@ -946,7 +940,12 @@ app.get(URL + 'solicitudes/retiro', async (req, res) => {
 
 	result.sun_total = result.sun_total.toString(10)
 
-	res.send(result)
+	return result
+}
+
+app.get(URL + 'solicitudes/retiro', async (req, res) => {
+
+	res.send(await infoContract())
 })
 
 async function trxSolicitadoData() {
@@ -967,7 +966,7 @@ async function trxSolicitadoData() {
 
 app.get(URL + 'tron/solicitado', async (req, res) => {
 
-	res.status(200).send({ trx: await trxSolicitadoData() })
+	res.status(200).send({ sistema: await trxSolicitadoData(), contrato: await infoContract() })
 })
 
 
@@ -1029,7 +1028,7 @@ function getSecret(userMd5) {
 
 }
 
-function decrypData(data, user){
+function decrypData(data, user) {
 
 	let secret = getSecret(user)
 
@@ -1041,9 +1040,9 @@ function decrypData(data, user){
 	return data
 }
 
-async function rentEnergy({expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token}){
+async function rentEnergy({ expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token }) {
 
-	result = {result:false}
+	result = { result: false }
 
 	if (expire && transaction && wallet && precio && to_address && amount && duration && resource && id_api && token) {
 
@@ -1076,8 +1075,8 @@ async function rentEnergy({expire, transaction, wallet, precio, to_address, amou
 					},
 					body: JSON.stringify(body1)
 				})
-				.then((r) => r.json())
-				.catch((e)=>console.log(e))
+					.then((r) => r.json())
+					.catch((e) => console.log(e))
 
 				console.log(consulta2)
 
@@ -1085,14 +1084,14 @@ async function rentEnergy({expire, transaction, wallet, precio, to_address, amou
 
 					result.result = true
 
-				}else{
+				} else {
 					result.error = true
 					result.msg = consulta2.msg
 					result.hash = hash.txID
 					result.point = "Bot-API"
 				}
 
-			}else{
+			} else {
 				result.error = true
 				result.msg = "Not SUCCESS"
 				result.hash = hash.txID
@@ -1100,14 +1099,14 @@ async function rentEnergy({expire, transaction, wallet, precio, to_address, amou
 			}
 
 
-		}else{
+		} else {
 			result.error = true
 			result.msg = "Not Hash, Price, To address"
 			result.hash = hash.txID
 			result.point = "Main-API"
 		}
 
-	}else{
+	} else {
 
 		result.error = true
 		result.msg = "No parameters to start"
@@ -1131,17 +1130,17 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	let { data, user } = req.body
 
-	if(!data || !user){
-		
+	if (!data || !user) {
+
 		response.error = true
 		response.msg = "No auth"
 
-	}else{
+	} else {
 
 		response = await rentEnergy(decrypData(data, user))
 
 	}
-	
+
 
 	res.status(200).send(response)
 
@@ -1184,4 +1183,4 @@ app.get(URL + 'selector/apikey', async (req, res) => {
 	res.send(result);
 });
 
-app.listen(port, () => console.log('Escuchando: http://localhost:' + port+'/api/v1'))
+app.listen(port, () => console.log('Escuchando: http://localhost:' + port + '/api/v1'))
