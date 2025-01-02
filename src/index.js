@@ -998,6 +998,7 @@ function getSecret(userMd5) {
 function decrypData(data, user) {
 
 	let secret = getSecret(user);
+	console.log(secret)
 	let bytes = CryptoJS.AES.decrypt(data, secret);
 	let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
 
@@ -1098,6 +1099,8 @@ app.post(URL + 'rent/energy', async (req, res) => {
 		response.msg = "No auth"
 
 	} else {
+
+		data = decodeURIComponent(data)
 
 		let descifrado = decrypData(data, user)
 		console.log(descifrado)
