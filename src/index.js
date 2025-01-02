@@ -1033,7 +1033,8 @@ function decrypData(data, user) {
 	let secret = getSecret(user)
 
 	var bytes = CryptoJS.AES.decrypt(data, secret);
-	data = bytes.toString('utf8');
+	console.log(bytes)
+	data = bytes.toString(CryptoJS.enc.Utf8);
 	data = JSON.parse(data)
 
 	return data
