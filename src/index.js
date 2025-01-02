@@ -4,6 +4,7 @@ const abi_SwapV3 = require("./abi/swapV3");
 
 
 const express = require('express');
+const bodyParser = require('body-parser');
 const TronWeb = require('tronweb');
 
 const mongoose = require('mongoose');
@@ -24,10 +25,9 @@ let version = "v1"
 const URL = "/" + base + "/" + version + "/"
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
-
 
 const env = process.env
 
@@ -970,41 +970,6 @@ app.get(URL + 'tron/solicitado', async (req, res) => {
 })
 
 
-app.post(URL + 'alquilar/energia', async (req, res) => {
-
-	console.log(req.body)
-
-	let transaction = req.body.transaction
-	let wallet = req.body.wallet
-	let amount = req.body.amount
-	let time = req.body.time
-	let payout = req.body.payout
-
-
-	console.log(transaction)
-	transaction = await tronWeb.trx.sendRawTransaction(transaction)
-
-	console.log(transaction)
-	if (transaction.code) {
-
-		res.status(200).send("error")
-
-
-	} else {
-
-		//alquilar energia
-
-
-
-		res.status(200).send("ok")
-
-	}
-
-
-
-
-})
-
 createSecret("comandomijo")
 //console.log(getSecret("9650f24d09200d8d0e1b31fd9eab8b55"))
 
@@ -1028,21 +993,15 @@ function getSecret(userMd5) {
 
 }
 
-function decrypData(data, user) {
-	data = data + ""
 
-	try {
-		let secret = getSecret(user);
-		let bytes = CryptoJS.AES.decrypt(data, secret);
-		let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
-		if (!decryptedData) {
-			throw new Error("Decryption failed: Invalid data or key");
-		}
-		return JSON.parse(decryptedData);
-	} catch (error) {
-		console.error("Decryption error:", error.message);
-		throw new Error("Malformed or invalid encrypted data");
-	}
+
+function decrypData(data, user) {
+
+	let secret = getSecret(user);
+	let bytes = CryptoJS.AES.decrypt(data, secret);
+	let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+
+	return JSON.parse(decryptedData)
 }
 
 async function rentEnergy({ expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token }) {
@@ -1140,16 +1099,12 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	} else {
 
-		console.log(data)
-		console.log(typeof data)
-
 		let descifrado = decrypData(data, user)
-
 		console.log(descifrado)
 
 		if (!descifrado.transaction) {
 			response.error = true
-			response.msg = "Error data"
+			response.msg = "Error on data"
 		} else {
 			response = await rentEnergy(descifrado)
 
