@@ -1031,16 +1031,10 @@ function getSecret(userMd5) {
 function decrypData(data, user) {
 
 	let secret = getSecret(user)
-	console.log(typeof data, data)
-
-	data = data.toString('utf-8');
-	console.log(typeof data, data)
 
 	var bytes = CryptoJS.AES.decrypt(data, secret);
 	data = bytes.toString(CryptoJS.enc.Utf8);
-	console.log(typeof data, data)
 	data = JSON.parse(data)
-	console.log(typeof data, data)
 
 	return data
 }
@@ -1129,8 +1123,6 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	//user["md5"]=>key
 
-	console.log(req.body)
-
 	let response = { result: false };
 
 	let { data, user } = req.body
@@ -1142,7 +1134,20 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 	} else {
 
-		response = await rentEnergy(decrypData(data, user))
+		console.log(data)
+		console.log(typeof data)
+
+		let descifrado = decrypData(data, user)
+
+		console.log(descifrado)
+
+		if (!descifrado.transaction) {
+			response.error = true
+			response.msg = "Error data"
+		} else {
+			response = await rentEnergy(descifrado)
+
+		}
 
 	}
 
