@@ -1031,7 +1031,11 @@ function getSecret(userMd5) {
 function decrypData(data, user) {
 
 	let secret = getSecret(user)
+	console.log(typeof data, data)
+
 	data = data.toString('utf-8');
+	console.log(typeof data, data)
+
 	var bytes = CryptoJS.AES.decrypt(data, secret);
 	data = bytes.toString(CryptoJS.enc.Utf8);
 	console.log(typeof data, data)
