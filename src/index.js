@@ -1029,15 +1029,18 @@ function getSecret(userMd5) {
 }
 
 function decrypData(data, user) {
-
-	let secret = getSecret(user)
-
-	var bytes = CryptoJS.AES.decrypt(data, secret);
-	console.log(bytes)
-	data = bytes.toString(CryptoJS.enc.Utf8);
-	data = JSON.parse(data)
-
-	return data
+	try {
+		let secret = getSecret(user);
+		let bytes = CryptoJS.AES.decrypt(data, secret);
+		let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+		if (!decryptedData) {
+			throw new Error("Decryption failed: Invalid data or key");
+		}
+		return JSON.parse(decryptedData);
+	} catch (error) {
+		console.error("Decryption error:", error.message);
+		throw new Error("Malformed or invalid encrypted data");
+	}
 }
 
 async function rentEnergy({ expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token }) {
