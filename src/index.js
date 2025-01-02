@@ -10,7 +10,7 @@ const mongoose = require('mongoose');
 const BigNumber = require('bignumber.js');
 const CronJob = require('cron').CronJob;
 
-const Cryptr = require('cryptr');
+const CryptoJS = require("crypto-js");
 var md5 = require('md5');
 
 let cors = require('cors');
@@ -1006,7 +1006,7 @@ app.post(URL + 'alquilar/energia', async (req, res) => {
 })
 
 createSecret("comandomijo")
-console.log(getSecret("9650f24d09200d8d0e1b31fd9eab8b55"))
+//console.log(getSecret("9650f24d09200d8d0e1b31fd9eab8b55"))
 
 function createSecret(user) {
 
@@ -1032,10 +1032,10 @@ function decrypData(data, user) {
 
 	let secret = getSecret(user)
 
-	const cryptr = new Cryptr(secret);
-	const decryptedString = cryptr.decrypt(data);
+	var bytes = CryptoJS.AES.decrypt(data, secret);
+	var decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
 
-	data = JSON.parse(decryptedString)
+	data = JSON.parse(decryptedData)
 
 	return data
 }
