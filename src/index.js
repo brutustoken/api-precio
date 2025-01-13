@@ -1000,12 +1000,17 @@ function decrypData(data, user) {
 
 async function rentEnergy({ expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token }) {
 
-	result = { result: false }
+	let res = {
+		result: false,
+		error: true,
+		msg: "Parameter Unaviable",
+		hash: "0xnull",
+		point: "Main-Function"
+	}
 
 	if (expire && transaction && wallet && precio && to_address && amount && duration && resource && id_api && token) {
 
 		hash = await tronWeb.trx.sendRawTransaction(transaction)
-
 		let envio = hash.transaction.raw_data.contract[0].parameter.value
 
 		if (hash.result && envio.amount >= parseInt(precio) && TronWeb.address.fromHex(envio.to_address) === to_address) {
@@ -1022,7 +1027,7 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 					"wallet": wallet,
 					"amount": amount,
 					"time": duration,
-					"user_id": "api-precio:" + hash.txid
+					"user_id": "api-precio"
 				}
 
 				let consulta2 = await fetch(url, {
@@ -1034,47 +1039,50 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 					body: JSON.stringify(body1)
 				})
 					.then((r) => r.json())
-					.catch((e) => console.log(e))
+					.catch((e) => {
+						console.log(e)
+						return { response: 0, msg: "Error-API: Asignation Energy" }
+					})
 
-				console.log(consulta2)
+				//console.log(consulta2)
 
 				if (consulta2.response === 1) {
 
-					result.result = true
+					res.result = true
 
 				} else {
-					result.error = true
-					result.msg = consulta2.msg
-					result.hash = hash.txID
-					result.point = "Bot-API"
+					res.error = true
+					res.msg = consulta2.msg
+					res.hash = hash.txID
+					res.point = "Bot-API"
 				}
 
 			} else {
-				result.error = true
-				result.msg = "Not SUCCESS"
-				result.hash = hash.txID
-				result.point = "Main-API"
+				res.error = true
+				res.msg = "Not SUCCESS"
+				res.hash = hash.txID
+				res.point = "Main-API"
 			}
 
 
 		} else {
-			result.error = true
-			result.msg = "Not Hash, Price, To address"
-			result.hash = hash.txID
-			result.point = "Main-API"
+			res.error = true
+			res.msg = "Not Hash, Price, To address"
+			res.hash = hash.txID
+			res.point = "Main-API"
 		}
 
 	} else {
 
-		result.error = true
-		result.msg = "No parameters to start"
-		result.hash = hash.txID
-		result.point = "Main-API"
+		res.error = true
+		res.msg = "No parameters to start"
+		res.hash = hash.txID
+		res.point = "Main-API"
 
 
 	}
 
-	return result
+	return res
 
 }
 
