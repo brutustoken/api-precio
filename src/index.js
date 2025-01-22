@@ -1154,4 +1154,12 @@ app.get(URL + 'selector/apikey', async (req, res) => {
 	res.send(result);
 });
 
-app.listen(port, () => console.log('Escuchando: http://localhost:' + port + '/api/v1'))
+app.get(URL + 'test/timeout', async (req, res) => {
+
+	await new Promise(r => setTimeout(r, 60 * 1000));
+
+	res.send({ result: true });
+});
+
+var server = app.listen(port, () => console.log('Escuchando: http://localhost:' + port + '/api/v1'))
+server.setTimeout(60 * 1000);
