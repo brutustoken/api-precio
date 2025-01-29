@@ -970,7 +970,8 @@ app.get(URL + 'tron/solicitado', async (req, res) => {
 })
 
 
-createSecret("comandomijo")
+createSecret(env.ENCODE_BRUTUS)
+createSecret(env.ENCODE_CIROTRX)
 //console.log(getSecret("9650f24d09200d8d0e1b31fd9eab8b55"))
 
 function createSecret(user) {
@@ -1044,8 +1045,6 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 						return { response: 0, msg: "Error-API: Asignation Energy" }
 					})
 
-				//console.log(consulta2)
-
 				if (consulta2.response === 1) {
 
 					res.result = true
@@ -1087,8 +1086,6 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 }
 
 app.post(URL + 'rent/energy', async (req, res) => {
-
-	//user["md5"]=>key
 
 	let response = { result: false };
 
