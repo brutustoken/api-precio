@@ -992,11 +992,19 @@ function getSecret(userMd5) {
 
 function decrypData(data, user) {
 
-	let secret = getSecret(user);
-	let bytes = CryptoJS.AES.decrypt(data, secret);
-	let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+	try {
 
-	return JSON.parse(decryptedData)
+		let secret = getSecret(user);
+		let bytes = CryptoJS.AES.decrypt(data, secret);
+		let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+
+		return JSON.parse(decryptedData)	
+		
+	} catch (error) {
+
+		return { error: true, msg: "Error on decrypt data" }
+	}
+	
 }
 
 async function rentEnergy({ expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token }) {
