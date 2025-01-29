@@ -1001,7 +1001,7 @@ function decrypData(data, user) {
 		return JSON.parse(decryptedData)	
 		
 	} catch (error) {
-
+		console.log(error)
 		return { error: true, msg: "Error on decrypt data" }
 	}
 	
