@@ -971,8 +971,7 @@ app.get(URL + 'tron/solicitado', async (req, res) => {
 
 
 createSecret(env.ENCODE_BRUTUS)
-createSecret(env.ENCODE_CIROTRX)
-//console.log(getSecret("9650f24d09200d8d0e1b31fd9eab8b55"))
+//createSecret(env.ENCODE_CIROTRX)
 
 function createSecret(user) {
 
@@ -1167,4 +1166,4 @@ app.get(URL + 'test/timeout', async (req, res) => {
 });
 
 var server = app.listen(port, () => console.log('Escuchando: http://localhost:' + port + '/api/v1'))
-server.setTimeout(60 * 1000);
+server.setTimeout(150 * 1000);
