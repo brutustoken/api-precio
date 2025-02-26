@@ -1094,6 +1094,8 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 app.post(URL + 'rent/energy', async (req, res) => {
 
+	req.setTimeout(150 * 1000);
+
 	let response = { result: false };
 
 	let { data, user } = req.body
@@ -1166,4 +1168,4 @@ app.get(URL + 'test/timeout', async (req, res) => {
 });
 
 var server = app.listen(port, () => console.log('Escuchando: http://localhost:' + port + '/api/v1'))
-server.setTimeout(150 * 1000);
+server.setTimeout(60 * 1000);
