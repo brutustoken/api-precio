@@ -841,6 +841,7 @@ async function chart(moneda, limite, temporalidad) {
 			break;
 
 		default:
+			Operador = PrecioBRST
 			break;
 	}
 
@@ -851,7 +852,7 @@ async function chart(moneda, limite, temporalidad) {
 
 	try {
 
-		consulta = await Operador.find({ temporalidad: temporalidad }, { valor: 1, date: 1 }).sort({ date: -1 }).limit(limite)
+		consulta = await Operador.find({ temporalidad: temporalidad }, { valor: 1, date: 1, valor_alt: 1 }).sort({ date: -1 }).limit(limite)
 
 
 		for (let index = 0; index < consulta.length; index++) {
