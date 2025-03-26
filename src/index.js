@@ -346,7 +346,6 @@ async function guardarDatos(temp) {
 
 }
 
-
 async function retirarTrxContrato() {
 
 	console.log("Retiros Automaticos")
@@ -480,13 +479,26 @@ async function precioBRUT() {
 
 	Pricetrx = precio / lastPriceTRX;
 
-	let variacion = await fetch(API_last_BRUT).then((res) => { return res.json() }).catch(error => { console.error(error) })
+	let variacion = 0
+	let APY = 0
 
-	variacion = parseFloat((variacion.values[0][0]).replace(',', '.'));
+	try {
 
-	variacion = (precio - variacion) / precio;
+		let consulta3 = await chart("brut", 30, "day")
+		variacion = (consulta3[0].valor - consulta3[1].valor) / (consulta3[1].valor)
 
-	return { precio: precio, Pricetrx: Pricetrx, variacion };
+		let variacionMes = ((consulta3[0].valor - consulta3[29].valor) / (consulta3[29].valor))/30
+
+		APY = variacionMes * 360
+
+
+	} catch(error) {
+		console.log(error)
+
+	}
+	console.log({ precio: precio, Pricetrx: Pricetrx, variacion, APY })
+
+	return { precio: precio, Pricetrx: Pricetrx, variacion, APY };
 }
 
 async function comprarBRST() {
@@ -642,17 +654,19 @@ async function precioBRST() {
 
 	try {
 
-		consulta3 = await chart("brst", 5, "day")
-		result.variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
+		consulta3 = await chart("brst", 30, "day")
+		result.variacion = (consulta3[0].valor - consulta3[1].valor) / (consulta3[1].valor)
 
-		result.APY = variacion * 360
+		let variacionMes = ((consulta3[0].valor - consulta3[29].valor) / (consulta3[29].valor))/30
+
+		result.APY = variacionMes * 360
 
 
-	} catch {
+	} catch(error) {
+		console.log(error)
 
 	}
 
-	//console.log(consulta3)
 
 	console.log(result)
 	return result;
@@ -852,16 +866,18 @@ async function chart(moneda, limite, temporalidad) {
 
 	try {
 
-		consulta = await Operador.find({ temporalidad: temporalidad }, { valor: 1, date: 1, valor_alt: 1 }).sort({ date: -1 }).limit(limite)
+		consulta = await Operador.find({ temporalidad: temporalidad }, { _id:0 ,valor: 1, date: 1, valor_alt: 1 }).sort({ date: -1 }).limit(limite)
 
+		datos = consulta.map((obj)=>{
+			const newObj = obj.toObject();
+			newObj.date = (new Date(newObj.date)).getTime()
+			return newObj
+		})
 
-		for (let index = 0; index < consulta.length; index++) {
-			let tiempo = (new Date(consulta[index].date)).getTime()
-			datos.push({ date: tiempo, value: consulta[index].valor });
-
-		}
 
 	} catch (error) {
+		console.log(error)
+		datos = []
 
 	}
 
