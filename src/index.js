@@ -485,9 +485,9 @@ async function precioBRUT() {
 	try {
 
 		let consulta3 = await chart("brut", 30, "day")
-		variacion = (consulta3[0].valor - consulta3[1].valor) / (consulta3[1].valor)
+		variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
 
-		let variacionMes = ((consulta3[0].valor - consulta3[29].valor) / (consulta3[29].valor))/30
+		let variacionMes = ((consulta3[0].value - consulta3[29].value) / (consulta3[29].value))/30
 
 		APY = variacionMes * 360
 
@@ -654,9 +654,9 @@ async function precioBRST() {
 	try {
 
 		consulta3 = await chart("brst", 30, "day")
-		result.variacion = (consulta3[0].valor - consulta3[1].valor) / (consulta3[1].valor)
+		result.variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
 
-		let variacionMes = ((consulta3[0].valor - consulta3[29].valor) / (consulta3[29].valor))/30
+		let variacionMes = ((consulta3[0].value - consulta3[29].value) / (consulta3[29].value))/30
 
 		result.APY = variacionMes * 360
 
@@ -868,6 +868,8 @@ async function chart(moneda, limite, temporalidad) {
 		datos = consulta.map((obj)=>{
 			const newObj = obj.toObject();
 			newObj.date = (new Date(newObj.date)).getTime()
+			newObj.value = newObj.valor
+			delete newObj.valor;
 			return newObj
 		})
 
