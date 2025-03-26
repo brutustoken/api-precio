@@ -496,9 +496,8 @@ async function precioBRUT() {
 		console.log(error)
 
 	}
-	console.log({ precio: precio, Pricetrx: Pricetrx, variacion, APY })
 
-	return { precio: precio, Pricetrx: Pricetrx, variacion, APY };
+	return { precio, Pricetrx, variacion, APY };
 }
 
 async function comprarBRST() {
@@ -667,8 +666,6 @@ async function precioBRST() {
 
 	}
 
-
-	console.log(result)
 	return result;
 }
 
