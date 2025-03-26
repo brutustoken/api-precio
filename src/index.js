@@ -56,6 +56,9 @@ let lastTimeBrut = 0;
 let lastPriceBrut;
 let lastPriceTRX = 0.15;
 
+let lastPriceUSDT = 0;
+let lastPriceUSDD = 0;
+
 mongoose.set('strictQuery', false);
 mongoose.connect(uriMongoDB)
 	.then(() => {
@@ -66,8 +69,10 @@ mongoose.connect(uriMongoDB)
 const Schema = mongoose.Schema;
 
 const Precios = new Schema({
+	moneda: String,
 	par: String,
 	valor: Number,
+	valor_alt: Array,
 	date: Date,
 	epoch: Number,
 	temporalidad: String
@@ -274,15 +279,44 @@ async function llenarWhiteList() {
 
 async function guardarDatos(temp) {
 
+	let priceUSDT = await fetch("https://apilist.tronscanapi.com/api/token/price?token=usdt")
+		.then((r) => r.json())
+		.then((r) => {
+			lastPriceUSDT = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			return lastPriceUSDT
+		})
+		.catch((e) => {
+			console.log(e)
+			return lastPriceUSDT
+		})
+
+	let priceUSDD = await fetch("https://apilist.tronscanapi.com/api/token/price?token=usdd")
+		.then((r) => r.json())
+		.then((r) => {
+			lastPriceUSDD = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			return lastPriceUSDD
+		})
+		.catch((e) => {
+			console.log(e)
+			return lastPriceUSDD
+		})
+
 	let fecha = Date.now();
 
 	let consulta2 = await precioBRST();
-
+	consulta2.RATE = new BigNumber(consulta2.RATE)
 	let consulta = await precioBRUT();
+	consulta.precio = new BigNumber(consulta.precio)
 
 	let instance = new PrecioBRUT({
+		moneda: "brut",
 		par: "brut-usd",
-		valor: consulta.precio,
+		valor: consulta.precio.toNumber(),
+		valor_alt: [
+			{ coin: "usdt", valor: consulta.precio.toNumber() }, 
+			{ coin: "trx", valor: consulta.precio.dividedBy(priceUSDT).dp(6).toNumber() },
+			{ coin: "brst", valor: consulta.precio.dividedBy(priceUSDT).dividedBy(consulta2.RATE).dp(6).toNumber()}
+		],
 		date: fecha,
 		epoch: fecha,
 		temporalidad: temp
@@ -292,8 +326,15 @@ async function guardarDatos(temp) {
 	instance.save({});
 
 	let instance2 = new PrecioBRST({
+		moneda: "brst",
 		par: "brst-trx",
-		valor: consulta2.RATE,
+		valor: consulta2.RATE.toNumber(),
+		valor_alt: [
+			{ coin: "trx", valor: consulta2.RATE.toNumber() },
+			{ coin: "usdt", valor: consulta2.RATE.times(priceUSDT).dp(6).toNumber() },
+			{ coin: "usdd", valor: consulta2.RATE.times(priceUSDD).dp(6).toNumber() },
+			{ coin: "brut", valor: consulta2.RATE.dividedBy(consulta.precio.dividedBy(priceUSDT)).dp(6).toNumber() }
+		],
 		date: fecha,
 		epoch: fecha,
 		temporalidad: temp
@@ -301,6 +342,8 @@ async function guardarDatos(temp) {
 	});
 
 	instance2.save({});
+
+
 }
 
 
@@ -997,13 +1040,13 @@ function decrypData(data, user) {
 		let bytes = CryptoJS.AES.decrypt(data, secret);
 		let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
 
-		return JSON.parse(decryptedData)	
-		
+		return JSON.parse(decryptedData)
+
 	} catch (error) {
 		console.log(error)
 		return { error: true, msg: "Error on decrypt data" }
 	}
-	
+
 }
 
 async function rentEnergy({ expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token }) {
