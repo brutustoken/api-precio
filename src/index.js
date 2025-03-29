@@ -276,7 +276,7 @@ async function llenarWhiteList() {
 	}
 
 }
-
+guardarDatos("null")
 async function guardarDatos(temp) {
 
 	let priceUSDT = await fetch("https://apilist.tronscanapi.com/api/token/price?token=usdt")
