@@ -282,7 +282,9 @@ async function guardarDatos(temp) {
 	let priceUSDT = await fetch("https://apilist.tronscanapi.com/api/token/price?token=usdt")
 		.then((r) => r.json())
 		.then((r) => {
-			lastPriceUSDT = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			if(r.price_in_usd && r.price_in_trx){
+				lastPriceUSDT = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			}
 			return lastPriceUSDT
 		})
 		.catch((e) => {
@@ -293,7 +295,9 @@ async function guardarDatos(temp) {
 	let priceUSDD = await fetch("https://apilist.tronscanapi.com/api/token/price?token=usdd")
 		.then((r) => r.json())
 		.then((r) => {
-			lastPriceUSDD = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			if(r.price_in_usd && r.price_in_trx){
+				lastPriceUSDD = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			}
 			return lastPriceUSDD
 		})
 		.catch((e) => {
