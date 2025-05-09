@@ -726,7 +726,7 @@ async function enviosTRX() {
 	let balanceRapidas = await tronWeb3.trx.getUnconfirmedBalance("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr");
 	balanceRapidas = new BigNumber(balanceRapidas).shiftedBy(-6);
 
-	let nivel = new BigNumber(2500).minus(balanceRapidas)
+	let nivel = new BigNumber(5000).minus(balanceRapidas)
 
 	if (nivel.toNumber() > balanceDWY.toNumber()) {
 		nivel = balanceDWY
