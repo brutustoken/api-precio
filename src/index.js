@@ -1,7 +1,4 @@
-const abi_POOLBRST = require("./abi/PoolBRSTv4");
-const abi_LOTTERY = require("./abi/Lottery");
-const abi_SwapV3 = require("./abi/swapV3");
-
+const env = process.env
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -17,19 +14,24 @@ var md5 = require('md5');
 let cors = require('cors');
 require('dotenv').config();
 
+const abi_POOLBRST = require("./abi/PoolBRSTv4");
+const abi_LOTTERY = require("./abi/Lottery");
+const abi_SwapV3 = require("./abi/swapV3");
+
 function delay(s) { return new Promise(res => setTimeout(res, s * 1000)); }
 
-let base = "api"
-let version = "v1"
-
-const URL = "/" + base + "/" + version + "/"
+const URL = "/api/v1/"
 
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors());
 
-const env = process.env
+const allowedOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : [];
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST'],
+  credentials: true,
+}))
 
 const port = env.PORT || 3004;
 const API = env.APP_GOOGLE_API;
@@ -144,8 +146,6 @@ if (develop === "false") {
 		console.log('>Running: ' + new Date().toLocaleString());
 		console.log('-----------------------------------');
 
-
-
 		//brutus functions
 		await comprarBRST();
 		await calculoBRST();
@@ -159,20 +159,24 @@ if (develop === "false") {
 	});
 	inicio.start();
 
-	let envios = new CronJob('0 0 2 * * *', async function () {
+	// retiros una vez al dia
+	let retiradasNormales = new CronJob('0 0 0 * * *', async () => {
+		retirarTrxContrato()
+
+	}, null, true, 'America/Bogota');
+	retiradasNormales.start();
+
+	// recarga retiros rapidos cada hora
+	let retiradasRapidas = new CronJob('0 0 */1 * * *', async function () {
 		await enviosTRX();
 
-
-	}, null, true, 'UTC');
-
-	envios.start();
+	}, null, true, 'America/Bogota');
+	retiradasRapidas.start();
 
 
 	let dias = new CronJob('0 0 20 * * *', async function () {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
-
-
 
 	}, null, true, 'America/Bogota');
 
@@ -181,8 +185,6 @@ if (develop === "false") {
 	let horas = new CronJob('0 0 */1 * * *', async function () {
 		await guardarDatos("hour");
 		console.log("Datos guardados - horas => " + new Date().toLocaleString());
-
-		retirarTrxContrato()
 
 	}, null, true, 'America/Bogota');
 
@@ -200,19 +202,9 @@ if (develop === "false") {
 	console.log("----------------- TEST MODE ----------------")
 	/// colocar funciones para probar solo en entorno de pruebas
 
-	//retirarTrxContrato()
-
-
 	let testFunctions = new CronJob('0 * * * * *', async function () {
 
 		console.log("ejecutando funciones tests")
-
-		//await enviosTRX();
-
-		//await calculoBRST();
-
-		//sorteo loteria
-		//await llenarWhiteList();
 
 
 
@@ -388,7 +380,6 @@ async function retirarTrxContrato() {
 		console.log("Solicitud: " + trxSolicitado.shiftedBy(-6).toString(10))
 
 		let diferencia = trxSolicitado.shiftedBy(-6).dp(0).shiftedBy(6)
-		console.log(diferencia.shiftedBy(-6).toNumber())
 
 		if (diferencia.shiftedBy(-6).toNumber() >= 1 && true) {
 
@@ -409,17 +400,16 @@ async function retirarTrxContrato() {
 
 			let devolucion = trxSolicitado.times(-1)
 
-			if (devolucion.toNumber() >= 1000 && false) {
+			if (devolucion.toNumber() >= 100 && false) {
 
 				console.log("Devolución: " + devolucion.shiftedBy(-6).toString(10) + " TRX a la wallet madre")
 
 				// retirrar TRX del contrato
 
-				let tx = await contract_POOL_PROXY.redimTRX(devolucion.plus(1 * 10 ** 6).toString(10)).send();
+				let tx = await contract_POOL_PROXY.redimTRX(devolucion.toString(10)).send();
 				console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
 
-				await delay(3)
-
+				await delay(10)
 
 				//enviarlo a la DWY                                                                         devolucion.toString(10)
 				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", devolucion.toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
@@ -676,7 +666,7 @@ async function precioBRST() {
 async function enviosTRX() {
 
 	let balanceDWY = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
-	balanceDWY = new BigNumber(balanceDWY).shiftedBy(-6).minus(95);// unidad TRX
+	balanceDWY = new BigNumber(balanceDWY).shiftedBy(-6).minus(100);// unidad TRX
 
 	// retiradas normales por debajo de 1000 TRX las cubre por encima las evita
 
@@ -689,7 +679,7 @@ async function enviosTRX() {
 	//let solicitado = new BigNumber(await trxSolicitadoData())
 	let solicitado = info.requerido.shiftedBy(-6)// unidad TRX
 
-	if (solicitado.toNumber() > 0 && balanceDWY > 1) {
+	if (solicitado.toNumber() > 0 && balanceDWY > 1 && false) {
 		// enviar lo que alcance
 
 		if (solicitado.toNumber() > balanceDWY) {
@@ -1091,9 +1081,9 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 			if (hash.ret[0].contractRet === "SUCCESS") {
 
-				let url = "" + process.env.REACT_APP_BOT_URL + resource //energy : bandwidth
+				const url = process.env.REACT_APP_BOT_URL + resource //energy : bandwidth
 
-				let body1 = {
+				const body1 = {
 					"id_api": id_api,
 					"wallet": wallet,
 					"amount": amount,
