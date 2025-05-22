@@ -53,7 +53,7 @@ const corsOptionsDelegate = function (req, callback) {
   if (isAllowedOrigin(origin)) {
     callback(null, {
        	origin: origin, // responde con el origin exacto
-    	methods: ['GET', 'POST'],
+    	methods: ['GET', 'POST', 'OPTIONS'],
       	allowedHeaders: ['Content-Type', 'Accept'],
     });
   } else {
@@ -64,6 +64,7 @@ const corsOptionsDelegate = function (req, callback) {
 };
 
 app.use(cors(corsOptionsDelegate))
+app.options('*', cors(corsOptionsDelegate));
 
 const port = env.PORT || 3004;
 const API = env.APP_GOOGLE_API;
