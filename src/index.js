@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const env = process.env
 
 const express = require('express');
@@ -12,7 +14,6 @@ const CryptoJS = require("crypto-js");
 var md5 = require('md5');
 
 let cors = require('cors');
-require('dotenv').config();
 
 const abi_POOLBRST = require("./abi/PoolBRSTv4");
 const abi_LOTTERY = require("./abi/Lottery");
@@ -83,11 +84,13 @@ const Precios = new Schema({
 const PrecioBRST = mongoose.model('brst 2', Precios);
 const PrecioBRUT = mongoose.model('bruts 2', Precios);
 
-const ApiKey = new Schema({
-	next: Number,
+const ListApiKey = new Schema({
+	key: String,
+	lastUse: Number,
+	uses: Number
 });
 
-const Api_key = mongoose.model('apikeys', ApiKey);
+const List_Api_key = mongoose.model('apikeyslist', ListApiKey);
 
 let lastTimeBRUT;
 
@@ -95,15 +98,15 @@ let lastTimeBRUT;
 // DWY principal cambiada por permisions 1
 let tronWeb = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
-	privateKey: process.env.APP_PRIVATEKEY_PERM_1
+	headers: { "TRON-PRO-API-KEY": env.tron_api_key },
+	privateKey: env.APP_PRIVATEKEY_PERM_1
 
 });
 
 let tronWeb_2fa = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
-	privateKey: process.env.APP_PRIVATEKEY_PERM_2
+	headers: { "TRON-PRO-API-KEY": env.tron_api_key },
+	privateKey: env.APP_PRIVATEKEY_PERM_2
 
 });
 
@@ -111,8 +114,8 @@ let tronWeb_2fa = new TronWeb({
 //cuenta alterna que compra BRST en automatico
 let tronWeb2 = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
-	privateKey: process.env.APP_PRIVATEKEY2
+	headers: { "TRON-PRO-API-KEY": env.tron_api_key2 },
+	privateKey: env.APP_PRIVATEKEY2
 
 });
 
@@ -120,8 +123,8 @@ let tronWeb2 = new TronWeb({
 //owner proxy Pool v4
 let tronWeb3 = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
-	privateKey: process.env.APP_PRIVATEKEY3
+	headers: { "TRON-PRO-API-KEY": env.tron_api_key2 },
+	privateKey: env.APP_PRIVATEKEY3
 
 });
 
@@ -355,7 +358,7 @@ async function retirarTrxContrato() {
 
 		//Descongela lo disponible
 		let transaction = await tronWeb.transactionBuilder.withdrawExpireUnfreeze("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
-		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
+		transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_1, 3);
 		transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
 		console.log("se descongelaron " + descongelando.shiftedBy(-6).toString(10) + " TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
@@ -364,8 +367,8 @@ async function retirarTrxContrato() {
 		//enviar lo descongelado al contrato de retiro
 
 		let transaction_2 = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", descongelando.toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 4);
-		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_1, 4);
-		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_2, 4);
+		transaction_2 = await tronWeb.trx.multiSign(transaction_2, env.APP_PRIVATEKEY_PERM_1, 4);
+		transaction_2 = await tronWeb.trx.multiSign(transaction_2, env.APP_PRIVATEKEY_PERM_2, 4);
 
 		transaction_2 = await tronWeb.trx.sendRawTransaction(transaction_2);
 
@@ -386,7 +389,7 @@ async function retirarTrxContrato() {
 			//solicita descongelacion
 
 			let transaction_3 = await tronWeb.transactionBuilder.unfreezeBalanceV2(diferencia.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
-			transaction_3 = await tronWeb.trx.multiSign(transaction_3, process.env.APP_PRIVATEKEY_PERM_1, 3);
+			transaction_3 = await tronWeb.trx.multiSign(transaction_3, env.APP_PRIVATEKEY_PERM_1, 3);
 			transaction_3 = await tronWeb.trx.sendRawTransaction(transaction_3);
 
 			console.log("https://tronscan.io/#/transaction/" + transaction_3.txid)
@@ -413,7 +416,7 @@ async function retirarTrxContrato() {
 
 				//enviarlo a la DWY                                                                         devolucion.toString(10)
 				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", devolucion.toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
-				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
+				transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY3, 2);
 				transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
 				console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
@@ -534,7 +537,7 @@ async function calculoBRST() {
 	if (true && permTiempo && recompensas > 0) {
 		console.log("[Reclamando recompensa: " + permTiempo + "]");
 		let transaction = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 3);
-		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
+		transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_1, 3);
 		transaction = await tronWeb.trx.sendRawTransaction(transaction);
 		console.log("[Transaccion: https://tronscan.io/#/transaction/" + transaction.txid + "]");
 	}
@@ -729,8 +732,8 @@ async function enviosTRX() {
 		try {
 
 			transaction = await tronWeb.transactionBuilder.sendTrx("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr", nivel.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 4);
-			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 4);
-			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_2, 4);
+			transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_1, 4);
+			transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_2, 4);
 
 			transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
@@ -1036,7 +1039,7 @@ function createSecret(user) {
 }
 
 function getSecret(userMd5) {
-	secret = TronWeb.sha3(userMd5 + process.env.APP_SECRETY)
+	secret = TronWeb.sha3(userMd5 + env.APP_SECRETY)
 	secret = (secret.split('0x')[1]).toString(10)
 	return secret
 
@@ -1081,7 +1084,7 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 			if (hash.ret[0].contractRet === "SUCCESS") {
 
-				const url = process.env.REACT_APP_BOT_URL + resource //energy : bandwidth
+				const url = env.REACT_APP_BOT_URL + resource //energy : bandwidth
 
 				const body1 = {
 					"id_api": id_api,
@@ -1175,37 +1178,48 @@ app.post(URL + 'rent/energy', async (req, res) => {
 
 })
 
-app.get(URL + 'selector/apikey', async (req, res) => {
-	let lista = process.env.lista_api_key.split(",")
-	let result = { "ok": false }
-	let idKey = await Api_key.findOne({})
+async function addKey(key){
 
-	if (idKey === null) {
+	if(!key) return;
 
-		let instance = new Api_key({
-			next: idKey + 1
+	if(await List_Api_key.findOne({key}) !== null) return console.log("key already: ",key);
 
-		});
+	let instance = new List_Api_key({
+		key: key,
+		lastUse: 0,
+		uses: 0
+	})
 
-		instance.save({});
+	instance.save({});
+}
 
-		idKey = 0
-	} else {
-		idKey = idKey.next
+async function adicionarKeys(){
+	const listaKeys = env.lista_api_key.split(",")
+
+	for (let index = 0; index < listaKeys.length; index++) {
+		await addKey(listaKeys[index])
+		
 	}
+}
 
-	//console.log(idKey)
+adicionarKeys()
+
+app.get(URL + 'selector/apikey', async (req, res) => {
+
+	let result = { "ok": false }
+
+	let lista = await List_Api_key.find({}).sort({lastUse: 1 })
+	
+	//console.log(lista)
 
 	if (lista.length > 0) {
 		result.ok = true
-		if (idKey > lista.length) {
-			idKey = 0
-		}
-		result.apikey = lista[idKey]
+		result.apikey = lista[0].key
 
-		await Api_key.updateOne({}, { next: idKey + 1 })
+		await List_Api_key.updateOne({_id: lista[0]._id}, { uses: lista[0].uses + 1, lastUse: Date.now() })
 	} else {
 		result.error = "no apikeys saved"
+		adicionarKeys()
 	}
 
 	res.send(result);
