@@ -50,6 +50,8 @@ const corsOptionsDelegate = function (req, callback) {
 
   console.log("ORIGEN: ",origin)
 
+  console.log("es Allowed: ", isAllowedOrigin(origin))
+
   if (isAllowedOrigin(origin)) {
     callback(null, {
        	origin: origin, // responde con el origin exacto
