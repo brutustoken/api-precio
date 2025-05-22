@@ -50,7 +50,9 @@ const corsOptionsDelegate = function (req, callback) {
 
   if (isAllowedOrigin(origin)) {
     callback(null, {
-      origin: true,
+       	origin: origin, // responde con el origin exacto
+    	methods: ['GET', 'POST'],
+      	allowedHeaders: ['Content-Type', 'Accept'],
     });
   } else {
     callback(null, {
