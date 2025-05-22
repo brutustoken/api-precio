@@ -48,6 +48,8 @@ function isAllowedOrigin(origin) {
 const corsOptionsDelegate = function (req, callback) {
   const origin = req.header('Origin');
 
+  console.log("ORIGEN: ".origin)
+
   if (isAllowedOrigin(origin)) {
     callback(null, {
        	origin: origin, // responde con el origin exacto
