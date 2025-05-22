@@ -29,7 +29,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 const allowedBaseDomains = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : [];
-console.log(allowedBaseDomains)
 
 function isAllowedOrigin(origin) {
   if (!origin) return false;
@@ -41,13 +40,9 @@ function isAllowedOrigin(origin) {
       hostname === base || hostname.endsWith(`.${base}`)
     );
 
-    console.log("ORIGEN:", origin);
-    console.log("HOSTNAME:", hostname);
-    console.log("es Allowed:", allowed);
-
     return allowed;
   } catch (e) {
-    console.log("Error en URL:", e.message);
+    //console.log("Error en URL:", e.message);
     return false;
   }
 }
@@ -55,13 +50,9 @@ function isAllowedOrigin(origin) {
 const corsOptionsDelegate = function (req, callback) {
   const origin = req.header('Origin');
 
-  console.log("ORIGEN: ",origin)
-
-  console.log("es Allowed: ", isAllowedOrigin(origin))
-
   if (isAllowedOrigin(origin)) {
     callback(null, {
-       	origin: origin, // responde con el origin exacto
+       	origin: origin,
     	methods: ['GET', 'POST', 'OPTIONS'],
       	allowedHeaders: ['Content-Type', 'Accept'],
     });
