@@ -51,7 +51,6 @@ const corsOptionsDelegate = function (req, callback) {
   if (isAllowedOrigin(origin)) {
     callback(null, {
       origin: true,
-      credentials: true,
     });
   } else {
     callback(null, {
