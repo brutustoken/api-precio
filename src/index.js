@@ -31,20 +31,27 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const allowedBaseDomains = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : [];
 console.log(allowedBaseDomains)
 
-// Función para validar si un Origin es permitido
 function isAllowedOrigin(origin) {
   if (!origin) return false;
   try {
     const url = new URL(origin);
-    return allowedBaseDomains.some(base => {
-      return url.hostname === base || url.hostname.endsWith('.' + base);
-    });
-  } catch (err) {
+    const hostname = url.hostname;
+
+    const allowed = allowedBaseDomains.some(base =>
+      hostname === base || hostname.endsWith(`.${base}`)
+    );
+
+    console.log("ORIGEN:", origin);
+    console.log("HOSTNAME:", hostname);
+    console.log("es Allowed:", allowed);
+
+    return allowed;
+  } catch (e) {
+    console.log("Error en URL:", e.message);
     return false;
   }
 }
 
-// Configuración dinámica de CORS
 const corsOptionsDelegate = function (req, callback) {
   const origin = req.header('Origin');
 
