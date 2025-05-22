@@ -27,12 +27,40 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const allowedOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : [];
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST'],
-  credentials: true,
-}))
+
+const allowedBaseDomains = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : [];
+console.log(allowedBaseDomains)
+
+// Función para validar si un Origin es permitido
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    return allowedBaseDomains.some(base => {
+      return url.hostname === base || url.hostname.endsWith('.' + base);
+    });
+  } catch (err) {
+    return false;
+  }
+}
+
+// Configuración dinámica de CORS
+const corsOptionsDelegate = function (req, callback) {
+  const origin = req.header('Origin');
+
+  if (isAllowedOrigin(origin)) {
+    callback(null, {
+      origin: true,
+      credentials: true,
+    });
+  } else {
+    callback(null, {
+      origin: false,
+    });
+  }
+};
+
+app.use(cors(corsOptionsDelegate))
 
 const port = env.PORT || 3004;
 const API = env.APP_GOOGLE_API;
