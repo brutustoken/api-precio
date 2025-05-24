@@ -26,7 +26,7 @@ function delay(s = 3) { return new Promise(res => setTimeout(res, s * 1000)); }
 let base = "api"
 let version = "v1"
 
-const URL = "/" + base + "/" + version + "/"
+const RUTA = "/" + base + "/" + version + "/"
 
 const app = express();
 app.use(bodyParser.json());
@@ -862,13 +862,13 @@ async function enviosTRX() {
 
 }
 
-app.get(URL, async (req, res) => {
+app.get(RUTA, async (req, res) => {
 
 	res.send({ "ok": true });
 });
 
 
-app.get(URL + 'precio/:moneda', async (req, res) => {
+app.get(RUTA +'precio/:moneda', async (req, res) => {
 
 	let moneda = req.params.moneda;
 
@@ -909,7 +909,7 @@ app.get(URL + 'precio/:moneda', async (req, res) => {
 
 });
 
-app.get(URL + 'data/:peticion', async (req, res) => {
+app.get(RUTA +'data/:peticion', async (req, res) => {
 
 	let {peticion} = req.params;
 
@@ -973,7 +973,7 @@ async function chart(moneda, limite, temporalidad) {
 
 }
 
-app.get(URL + 'chartdata/:moneda', async (req, res) => {
+app.get(RUTA +'chartdata/:moneda', async (req, res) => {
 
 	let {moneda, limite = 30, temporalidad = "day"} = req.params;
 
@@ -989,7 +989,7 @@ app.get(URL + 'chartdata/:moneda', async (req, res) => {
 
 });
 
-app.get(URL + 'consutla/energia', async (req, res) => {
+app.get(RUTA +'consutla/energia', async (req, res) => {
 
 	let { wallets = "" } = req.query
 	let data = {}
@@ -1020,7 +1020,7 @@ app.get(URL + 'consutla/energia', async (req, res) => {
 
 });
 
-app.get(URL + 'consulta/marketcap/brut', async (req, res) => {
+app.get(RUTA +'consulta/marketcap/brut', async (req, res) => {
 
 	let valor = await fetch(CAP_BRUT)
 		.then((res) => { return res.json() })
@@ -1076,7 +1076,7 @@ async function infoContract() {
 	return result
 }
 
-app.get(URL + 'solicitudes/retiro', async (req, res) => {
+app.get(RUTA +'solicitudes/retiro', async (req, res) => {
 
 	res.send(await infoContract())
 })
@@ -1092,7 +1092,7 @@ async function trxSolicitadoData() {
 }
 
 
-app.get(URL + 'tron/solicitado', async (req, res) => {
+app.get(RUTA +'tron/solicitado', async (req, res) => {
 
 	res.status(200).send({ sistema: await trxSolicitadoData(), contrato: await infoContract() })
 })
@@ -1188,7 +1188,7 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 }
 
-app.post(URL + 'rent/energy', async (req, res) => {
+app.post(RUTA +'rent/energy', async (req, res) => {
 
 	let response = { result: false };
 
@@ -1280,7 +1280,7 @@ app.get(RUTA + 'selector/apikey', async (req, res) => {
 
 });
 
-app.get(URL + 'test/timeout', async (req, res) => {
+app.get(RUTA +'test/timeout', async (req, res) => {
 
 	await new Promise(r => setTimeout(r, 60 * 1000));
 
