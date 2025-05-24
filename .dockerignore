@@ -1,8 +1,27 @@
-**/node_modules/
-**/dist
+# Ignorar dependencias locales (se instalarán dentro del contenedor)
+**/node_modules
+node_modules
+
+# Archivos de control de versiones
 .git
-npm-debug.log
-.coverage
-.coverage.*
+.gitignore
+
+# Variables de entorno
+**/.env
 .env
-.aws
+
+# Archivos del sistema y del editor
+.DS_Store
+.vscode
+*.log
+
+# Dockerfiles antiguos, si hay
+Dockerfile*
+docker-compose.yml
+.dockerignore
+
+# Tests opcionalmente (si no los necesitas en producción)
+__tests__/
+*.spec.js
+*.test.js
+coverage

@@ -1,11 +1,9 @@
-FROM node:22-bullseye
+FROM node:22.16.0-alpine
 
 WORKDIR /app
 
 COPY . .
 
 RUN npm install
-
-EXPOSE 3004
 
 CMD [ "npm", "start" ]

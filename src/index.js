@@ -1,79 +1,84 @@
-require('dotenv').config();
+// @ts-check
 
+require('dotenv').config();
 const env = process.env
 
-const express = require('express');
 const bodyParser = require('body-parser');
 const TronWeb = require('tronweb');
 
-const mongoose = require('mongoose');
-const BigNumber = require('bignumber.js');
+const { BigNumber } = require('bignumber.js');
 const CronJob = require('cron').CronJob;
 
-const CryptoJS = require("crypto-js");
-var md5 = require('md5');
 
+const express = require('express');
 let cors = require('cors');
 
-const abi_POOLBRST = require("./abi/PoolBRSTv4");
-const abi_LOTTERY = require("./abi/Lottery");
-const abi_SwapV3 = require("./abi/swapV3");
+const abi_POOLBRST = require("./abi/PoolBRSTv4.json");
+const abi_LOTTERY = require("./abi/Lottery.json");
+const abi_SwapV3 = require("./abi/swapV3.json");
 
-function delay(s) { return new Promise(res => setTimeout(res, s * 1000)); }
+const {createSecret, decrypData} = require('./services/encryption')
 
-const RUTA = "/api/v1/"
+const { Precio, ApiKey } = require('./database')
+
+function delay(s = 3) { return new Promise(res => setTimeout(res, s * 1000)); }
+
+let base = "api"
+let version = "v1"
+
+const URL = "/" + base + "/" + version + "/"
 
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 
 
 const allowedBaseDomains = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : [];
 
 function isAllowedOrigin(origin) {
-  if (!origin) return false;
-  try {
-    const url = new URL(origin);
-    const hostname = url.hostname;
+	if (!origin) return false;
+	try {
+		const url = new URL(origin);
+		const hostname = url.hostname;
 
-    const allowed = allowedBaseDomains.some(base =>
-      hostname === base || hostname.endsWith(`.${base}`)
-    );
+		const allowed = allowedBaseDomains.some(base =>
+			hostname === base || hostname.endsWith(`.${base}`)
+		);
 
-    return allowed;
-  } catch (e) {
-    //console.log("Error en URL:", e.message);
-    return false;
-  }
+		return allowed;
+	} catch (e) {
+		//console.log("Error en URL:", e.message);
+		return false;
+	}
 }
 
 const corsOptionsDelegate = function (req, callback) {
-  const origin = req.header('Origin');
+	const origin = req.header('Origin');
 
-  if (isAllowedOrigin(origin)) {
-    callback(null, {
-       	origin: origin,
-    	methods: ['GET', 'POST', 'OPTIONS'],
-      	allowedHeaders: ['Content-Type', 'Accept'],
-    });
-  } else {
-    callback(null, {
-      origin: false,
-    });
-  }
+	if (isAllowedOrigin(origin)) {
+		callback(null, {
+			origin: origin,
+			methods: ['GET', 'POST', 'OPTIONS'],
+			allowedHeaders: ['Content-Type', 'Accept'],
+		});
+	} else {
+		callback(null, {
+			origin: false,
+		});
+	}
 };
 
 app.use(cors(corsOptionsDelegate))
 app.options('*', cors(corsOptionsDelegate));
 
 const port = env.PORT || 3004;
-const API = env.APP_GOOGLE_API;
-const uriMongoDB = env.APP_URIMONGODB
+const API = env.APP_GOOGLE_API || "";
 
 const API_last_BRUT = env.APP_GOOGLE_API_BRUT;
 
-const CAP_BRUT = env.APP_GOOGLE_API_CAP_BRUT;
-const CIRC_BRUT = env.APP_GOOGLE_API_CIRC_BRUT
+const CAP_BRUT = env.APP_GOOGLE_API_CAP_BRUT || "";
+const CIRC_BRUT = env.APP_GOOGLE_API_CIRC_BRUT || "";
 
 
 const WALLET_SR = "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY";
@@ -94,51 +99,21 @@ let lastPriceTRX = 0.15;
 let lastPriceUSDT = 0;
 let lastPriceUSDD = 0;
 
-mongoose.set('strictQuery', false);
-mongoose.connect(uriMongoDB)
-	.then(() => {
-		console.log("conectado MongoDB")
-	})
-	.catch(console.log)
-
-const Schema = mongoose.Schema;
-
-const Precios = new Schema({
-	moneda: String,
-	par: String,
-	valor: Number,
-	valor_alt: Array,
-	date: Date,
-	epoch: Number,
-	temporalidad: String
-});
-
-const PrecioBRST = mongoose.model('brst 2', Precios);
-const PrecioBRUT = mongoose.model('bruts 2', Precios);
-
-const ListApiKey = new Schema({
-	key: String,
-	lastUse: Number,
-	uses: Number
-});
-
-const List_Api_key = mongoose.model('apikeyslist', ListApiKey);
-
 let lastTimeBRUT;
 
 
 // DWY principal cambiada por permisions 1
 let tronWeb = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": env.tron_api_key },
-	privateKey: env.APP_PRIVATEKEY_PERM_1
+	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
+	privateKey: process.env.APP_PRIVATEKEY_PERM_1
 
 });
 
 let tronWeb_2fa = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": env.tron_api_key },
-	privateKey: env.APP_PRIVATEKEY_PERM_2
+	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key },
+	privateKey: process.env.APP_PRIVATEKEY_PERM_2
 
 });
 
@@ -146,8 +121,8 @@ let tronWeb_2fa = new TronWeb({
 //cuenta alterna que compra BRST en automatico
 let tronWeb2 = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": env.tron_api_key2 },
-	privateKey: env.APP_PRIVATEKEY2
+	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
+	privateKey: process.env.APP_PRIVATEKEY2
 
 });
 
@@ -155,8 +130,8 @@ let tronWeb2 = new TronWeb({
 //owner proxy Pool v4
 let tronWeb3 = new TronWeb({
 	fullHost: TRONGRID_API,
-	headers: { "TRON-PRO-API-KEY": env.tron_api_key2 },
-	privateKey: env.APP_PRIVATEKEY3
+	headers: { "TRON-PRO-API-KEY": process.env.tron_api_key2 },
+	privateKey: process.env.APP_PRIVATEKEY3
 
 });
 
@@ -172,19 +147,23 @@ contract_SWAPV3 = tronWeb3.contract(abi_SwapV3, addressContractFastWitdraw)
 
 precioBRUT()
 
-
 if (develop === "false") {
 
 	//cada minuto se ejecuta
-	let inicio = new CronJob('0 */1 * * * *', async () => {
+	let inicio = new CronJob('0 */5 * * * *', async () => {
 		console.log('-----------------------------------');
 		console.log('>Running: ' + new Date().toLocaleString());
 		console.log('-----------------------------------');
 
+
+
 		//brutus functions
 		await comprarBRST();
+		await delay(60)
 		await calculoBRST();
+		await delay(60)
 		await actualizarPrecioBRUTContrato();
+		await delay(60)
 
 		//sorteo loteria
 		await llenarWhiteList();
@@ -194,24 +173,20 @@ if (develop === "false") {
 	});
 	inicio.start();
 
-	// retiros una vez al dia
-	let retiradasNormales = new CronJob('0 0 0 * * *', async () => {
-		retirarTrxContrato()
-
-	}, null, true, 'America/Bogota');
-	retiradasNormales.start();
-
-	// recarga retiros rapidos cada hora
-	let retiradasRapidas = new CronJob('0 0 */1 * * *', async function () {
+	let envios = new CronJob('0 0 2 * * *', async function () {
 		await enviosTRX();
 
-	}, null, true, 'America/Bogota');
-	retiradasRapidas.start();
+
+	}, null, true, 'UTC');
+
+	envios.start();
 
 
 	let dias = new CronJob('0 0 20 * * *', async function () {
 		await guardarDatos("day");
 		console.log("Datos guardados - Día")
+
+
 
 	}, null, true, 'America/Bogota');
 
@@ -220,6 +195,8 @@ if (develop === "false") {
 	let horas = new CronJob('0 0 */1 * * *', async function () {
 		await guardarDatos("hour");
 		console.log("Datos guardados - horas => " + new Date().toLocaleString());
+
+		retirarTrxContrato()
 
 	}, null, true, 'America/Bogota');
 
@@ -237,9 +214,19 @@ if (develop === "false") {
 	console.log("----------------- TEST MODE ----------------")
 	/// colocar funciones para probar solo en entorno de pruebas
 
+	//retirarTrxContrato()
+
+
 	let testFunctions = new CronJob('0 * * * * *', async function () {
 
 		console.log("ejecutando funciones tests")
+
+		//await enviosTRX();
+
+		//await calculoBRST();
+
+		//sorteo loteria
+		//await llenarWhiteList();
 
 
 
@@ -276,29 +263,34 @@ async function sendTrxSR(balance) {
 
 async function llenarWhiteList() {
 
-
 	// si es tiempo de sorteo sortea
-	let tiempoSorteo = await contract_LOTTERY.proximaRonda().call();
-	tiempoSorteo = new BigNumber(tiempoSorteo._hex).toNumber()
+	try {
 
-	tiempoSorteo = parseInt(Date.now() / 1000) > tiempoSorteo
+		let tiempoSorteo = await contract_LOTTERY.proximaRonda().call();
+		tiempoSorteo = new BigNumber(tiempoSorteo._hex).toNumber()
+		tiempoSorteo = (Date.now() / 1000).toFixed(0) > tiempoSorteo
 
-	let balanceT1 = new BigNumber((await contract_SWAPV3.balance_token_1().call())._hex).toNumber()
+		let balanceT1 = new BigNumber((await contract_SWAPV3.balance_token_1().call())._hex).toNumber()
 
-	let premio = await contract_LOTTERY._premio().call()
-	premio = new BigNumber(premio.prix._hex).toNumber()
+		let premio = await contract_LOTTERY._premio().call()
+		premio = new BigNumber(premio.prix._hex).toNumber()
 
-	//console.log(balanceT1,premio)
+		//console.log(balanceT1,premio)
 
-	if (tiempoSorteo && balanceT1 >= premio && true) {
+		if (tiempoSorteo && balanceT1 >= premio && true) {
 
-		await contract_LOTTERY.sorteo(true).send()
-			.then((h) => {
-				console.log("[Ejecución: Sorteo Lottery " + h + "]");
+			await contract_LOTTERY.sorteo(true).send()
+				.then((h) => {
+					console.log("[Ejecución: Sorteo Lottery " + h + "]");
 
-			})
-			.catch((err) => { console.log(err) });
+				})
+				.catch((err) => { console.log(err) });
 
+
+		}
+
+	} catch (error) {
+		console.log(error)
 
 	}
 
@@ -309,8 +301,8 @@ async function guardarDatos(temp) {
 	let priceUSDT = await fetch("https://apilist.tronscanapi.com/api/token/price?token=usdt")
 		.then((r) => r.json())
 		.then((r) => {
-			if(r.price_in_usd && r.price_in_trx){
-				lastPriceUSDT = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			if (r.price_in_usd && r.price_in_trx) {
+				lastPriceUSDT = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx).toNumber()
 			}
 			return lastPriceUSDT
 		})
@@ -322,8 +314,8 @@ async function guardarDatos(temp) {
 	let priceUSDD = await fetch("https://apilist.tronscanapi.com/api/token/price?token=usdd")
 		.then((r) => r.json())
 		.then((r) => {
-			if(r.price_in_usd && r.price_in_trx){
-				lastPriceUSDD = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx)
+			if (r.price_in_usd && r.price_in_trx) {
+				lastPriceUSDD = new BigNumber(r.price_in_usd).dividedBy(r.price_in_trx).toNumber()
 			}
 			return lastPriceUSDD
 		})
@@ -339,14 +331,14 @@ async function guardarDatos(temp) {
 	let consulta = await precioBRUT();
 	consulta.precio = new BigNumber(consulta.precio)
 
-	let instance = new PrecioBRUT({
+	let instance = new Precio({
 		moneda: "brut",
 		par: "brut-usd",
 		valor: consulta.precio.toNumber(),
 		valor_alt: [
-			{ coin: "usdt", valor: consulta.precio.toNumber() }, 
+			{ coin: "usdt", valor: consulta.precio.toNumber() },
 			{ coin: "trx", valor: consulta.precio.dividedBy(priceUSDT).dp(6).toNumber() },
-			{ coin: "brst", valor: consulta.precio.dividedBy(priceUSDT).dividedBy(consulta2.RATE).dp(6).toNumber()}
+			{ coin: "brst", valor: consulta.precio.dividedBy(priceUSDT).dividedBy(consulta2.RATE).dp(6).toNumber() }
 		],
 		date: fecha,
 		epoch: fecha,
@@ -356,7 +348,7 @@ async function guardarDatos(temp) {
 
 	instance.save({});
 
-	let instance2 = new PrecioBRST({
+	let instance2 = new Precio({
 		moneda: "brst",
 		par: "brst-trx",
 		valor: consulta2.RATE.toNumber(),
@@ -390,7 +382,7 @@ async function retirarTrxContrato() {
 
 		//Descongela lo disponible
 		let transaction = await tronWeb.transactionBuilder.withdrawExpireUnfreeze("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY");
-		transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_1, 3);
+		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
 		transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
 		console.log("se descongelaron " + descongelando.shiftedBy(-6).toString(10) + " TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
@@ -399,8 +391,8 @@ async function retirarTrxContrato() {
 		//enviar lo descongelado al contrato de retiro
 
 		let transaction_2 = await tronWeb.transactionBuilder.sendTrx("TRSWzPDgkEothRpgexJv7Ewsqo66PCqQ55", descongelando.toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 4);
-		transaction_2 = await tronWeb.trx.multiSign(transaction_2, env.APP_PRIVATEKEY_PERM_1, 4);
-		transaction_2 = await tronWeb.trx.multiSign(transaction_2, env.APP_PRIVATEKEY_PERM_2, 4);
+		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_1, 4);
+		transaction_2 = await tronWeb.trx.multiSign(transaction_2, process.env.APP_PRIVATEKEY_PERM_2, 4);
 
 		transaction_2 = await tronWeb.trx.sendRawTransaction(transaction_2);
 
@@ -415,13 +407,14 @@ async function retirarTrxContrato() {
 		console.log("Solicitud: " + trxSolicitado.shiftedBy(-6).toString(10))
 
 		let diferencia = trxSolicitado.shiftedBy(-6).dp(0).shiftedBy(6)
+		console.log(diferencia.shiftedBy(-6).toNumber())
 
 		if (diferencia.shiftedBy(-6).toNumber() >= 1 && true) {
 
 			//solicita descongelacion
 
 			let transaction_3 = await tronWeb.transactionBuilder.unfreezeBalanceV2(diferencia.toString(10), 'ENERGY', "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", { permissionId: 3 })
-			transaction_3 = await tronWeb.trx.multiSign(transaction_3, env.APP_PRIVATEKEY_PERM_1, 3);
+			transaction_3 = await tronWeb.trx.multiSign(transaction_3, process.env.APP_PRIVATEKEY_PERM_1, 3);
 			transaction_3 = await tronWeb.trx.sendRawTransaction(transaction_3);
 
 			console.log("https://tronscan.io/#/transaction/" + transaction_3.txid)
@@ -435,20 +428,21 @@ async function retirarTrxContrato() {
 
 			let devolucion = trxSolicitado.times(-1)
 
-			if (devolucion.toNumber() >= 100 && false) {
+			if (devolucion.toNumber() >= 1000 && false) {
 
 				console.log("Devolución: " + devolucion.shiftedBy(-6).toString(10) + " TRX a la wallet madre")
 
 				// retirrar TRX del contrato
 
-				let tx = await contract_POOL_PROXY.redimTRX(devolucion.toString(10)).send();
+				let tx = await contract_POOL_PROXY.redimTRX(devolucion.plus(1 * 10 ** 6).toString(10)).send();
 				console.log("Retirado del contrato: https://tronscan.io/#/transaction/" + tx)
 
-				await delay(10)
+				await delay(3)
+
 
 				//enviarlo a la DWY                                                                         devolucion.toString(10)
 				let transaction = await tronWeb.transactionBuilder.sendTrx("TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", devolucion.toString(10), "TANfdPM6LLErkPzcb2vJN5n6K578Jvt5Yg", 2);
-				transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY3, 2);
+				transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY3, 2);
 				transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
 				console.log("Transferido a TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY: https://tronscan.io/#/transaction/" + transaction.txid)
@@ -464,32 +458,54 @@ async function retirarTrxContrato() {
 }
 
 async function actualizarPrecioBRUTContrato() {
-	let precio = await fetch(API).then((r) => { return r.json() }).catch(error => { console.error(error); })
+	let precio = await fetch(API)
+		.then((r) => { return r.json() })
+		.catch(() => {
+			console.log("error consultar hoja de google BRUT");
+			return null
+		})
+
+	if (!precio) return;
+
+	console.log(precio.length)
 
 	precio = precio.values[0][0];
-	//console.log(precio)
 	precio = precio.replace(',', '.');
 	precio = parseFloat(precio);
 
 	//let precio = 12.58;
 
-	let contract = await tronWeb3.contract().at(addressContract);
-	let RATE = await contract.RATE().call();
+	const contract = await tronWeb3.contract().at(addressContract)
+	if (!contract) return;
+
+	let RATE = await contract.RATE().call()
+		.catch(() => null)
+	if (!RATE) return;
+
 	RATE = parseInt(RATE._hex);
 
-	if (RATE != parseInt(precio * 10 ** 6) && Date.now() >= lastTimeBRUT + 1 * 3600 * 1000 && true) {
+	if (RATE != (precio * 10 ** 6).toFixed(0) && Date.now() >= lastTimeBRUT + 1 * 3600 * 1000 && true) {
 		console.log("actualizando precio BRUT");
-		await contract.ChangeRate(parseInt(precio * 10 ** 6)).send();
+		await contract.ChangeRate((precio * 10 ** 6).toFixed(0)).send();
 		lastTimeBRUT = Date.now()
 	}
 }
 
 async function precioBRUT() {
 	let precio = lastPriceBrut
+	let variacion = 0
+	let APY = 0
 
-	if (Date.now() >= lastTimeBrut + 900 * 1000) {
-		precio = await fetch(API).then((res) => { return res.json() }).catch(error => { console.error(error) })
-		precio = (precio.values[0][0]).replace(',', '.');
+	let consulta = await fetch(API)
+		.then((res) => { return res.json() })
+		.catch(error => {
+			console.error(error);
+			return null
+		})
+
+	if (consulta && Date.now() >= lastTimeBrut + 900 * 1000) {
+
+		precio = (consulta.values[0][0]).replace(',', '.');
 		precio = parseFloat(precio);
 
 		if (isNaN(precio)) {
@@ -499,31 +515,22 @@ async function precioBRUT() {
 		lastPriceBrut = precio;
 		lastTimeBrut = Date.now();
 
-		console.log("Ultimo precio guardado: {BRUT: " + lastPriceBrut + "}")
+		console.log("Ultimo precio guardado:", { BRUT: lastPriceBrut })
 	}
 
-	let contract = await tronWeb3.contract().at(addressContract);
-	let RATE = await contract.RATE().call();
-	RATE = parseInt(RATE._hex);
 
-	Pricetrx = precio / lastPriceTRX;
-
-	let variacion = 0
-	let APY = 0
+	let Pricetrx = precio / lastPriceTRX;
 
 	try {
 
 		let consulta3 = await chart("brut", 30, "day")
-		variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
+		if (consulta3.length > 0) {
+			variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
+			APY = (((consulta3[0].value - consulta3[29].value) / (consulta3[29].value)) / 30) * 360
+		}
 
-		let variacionMes = ((consulta3[0].value - consulta3[29].value) / (consulta3[29].value))/30
-
-		APY = variacionMes * 360
-
-
-	} catch(error) {
+	} catch (error) {
 		console.log(error)
-
 	}
 
 	return { precio, Pricetrx, variacion, APY };
@@ -531,7 +538,13 @@ async function precioBRUT() {
 
 async function comprarBRST() {
 
-	let cuenta = await tronWeb2.trx.getAccount();
+	let cuenta = await tronWeb2.trx.getAccount()
+		.catch(() => {
+			console.log("Fallo en: comprarBRST")
+			return null
+		})
+
+	if (!cuenta) return;
 
 	cuenta.balance = 0;
 	if (cuenta.balance) {
@@ -549,15 +562,26 @@ async function comprarBRST() {
 	// comprar auto brst
 	if (cuenta.balance >= 100 && true) {
 
-		let tx = await contract_POOL_PROXY.staking().send({ callValue: parseInt(cuenta.balance * 10 ** 6) });
+		let tx = await contract_POOL_PROXY.staking().send({ callValue: (cuenta.balance * 10 ** 6).toFixed(0) });
 		console.log("[Ejecución: compra de BRST " + tx + "]");
 	}
 
 
 };
 
+calculoBRST()
+
 async function calculoBRST() {
-	let cuenta = await tronWeb.trx.getAccount(WALLET_SR);
+
+
+	let cuenta = await tronWeb.trx.getAccount(WALLET_SR)
+		.catch(() => {
+			console.log("Fallo en: calculoBRST")
+			return null
+		})
+
+	if (!cuenta) return;
+
 	cuenta.wallet = tronWeb.address.fromHex(cuenta.address);
 
 	let recompensas = await tronWeb.trx.getReward(cuenta.address);
@@ -569,61 +593,119 @@ async function calculoBRST() {
 	if (true && permTiempo && recompensas > 0) {
 		console.log("[Reclamando recompensa: " + permTiempo + "]");
 		let transaction = await tronWeb.transactionBuilder.withdrawBlockRewards(cuenta.address, 3);
-		transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_1, 3);
+		transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 3);
 		transaction = await tronWeb.trx.sendRawTransaction(transaction);
 		console.log("[Transaccion: https://tronscan.io/#/transaction/" + transaction.txid + "]");
 	}
 
 	await delay(3)
 
-	let balance = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
-	balance = new BigNumber(balance).shiftedBy(-6);
+	let balance = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR)
+	balance = new BigNumber(balance).shiftedBy(-6).toNumber();
 
 	let account = await tronWeb3.trx.getAccount()
+		.catch(() => {
+			console.log("Fallo en: calculoBRST - 2")
+			return null
+		})
+	if (!account) return
+
 	account.wallet = tronWeb.address.fromHex(account.address);
 
-	let trx = await fetch("https://apilist.tronscanapi.com/api/account/tokens?address=" + WALLET_SR + "&start=0&limit=20&token=trx&hidden=0&show=0&sortType=0")
-		.then((r) => { return r.json() })
-		.then((r) => { return r.data[0] })
-		.catch((e) => { console.error(e); return false })
+	let trx2 = null
+	let congelado = null
+	let descongelando = null
+	let trxContractV4 = null
+	let trxContractRetirosV4 = null
+	let trxContractRetiros_fast = null
 
-	if (trx) {
-		//console.log(trx)
+	try {
 
-		let trxContractV4 = (await contract_POOL_PROXY.TRON_BALANCE().call()).toNumber() / 10 ** 6;
-		let trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
+		trxContractV4 = await contract_POOL_PROXY.TRON_BALANCE().call()
+		trxContractV4 = new BigNumber(trxContractV4._hex).shiftedBy(-6);
+
+		trxContractRetirosV4 = await tronWeb3.trx.getUnconfirmedBalance(contract_POOL_PROXY.address);
 		trxContractRetirosV4 = new BigNumber(trxContractRetirosV4).shiftedBy(-6);
 
-		let trxContractRetiros_fast = await tronWeb3.trx.getUnconfirmedBalance(addressContractFastWitdraw);
+		trxContractRetiros_fast = await tronWeb3.trx.getUnconfirmedBalance(addressContractFastWitdraw);
 		trxContractRetiros_fast = new BigNumber(trxContractRetiros_fast).shiftedBy(-6);
+
+		trx2 = await tronWeb3.trx.getAccount(WALLET_SR)
+			.catch(() => {
+				console.log("Fallo en: calculoBRST - 2")
+				return null
+			})
+		//console.log(trx2)
+
+		if (!trx2) return
+
+		congelado = 0
+
+		if (trx2.frozenV2) {
+			congelado = trx2.frozenV2.reduce((acc, item) => item.amount ? acc + item.amount : acc, 0);
+			congelado = congelado / 10 ** 6
+		}
+
+		if (trx2.delegated_frozenV2_balance_for_bandwidth) {
+			congelado += trx2.delegated_frozenV2_balance_for_bandwidth / 10 ** 6
+		}
+
+		if (trx2.account_resource && trx2.account_resource.delegated_frozenV2_balance_for_energy) {
+			congelado += trx2.account_resource.delegated_frozenV2_balance_for_energy / 10 ** 6
+		}
+		//console.log(congelado)
+
+		if (trx2.unfrozenV2) {
+			descongelando = trx2.unfrozenV2.reduce((acc, item) => item.unfreeze_amount ? acc + item.unfreeze_amount : acc, 0);
+			descongelando = descongelando / 10 ** 6
+		}
+		//console.log(descongelando)
+
+
+	} catch (error) {
+		console.log("error consulta trx: ", WALLET_SR)
+	}
+
+
+	if (trx2 && congelado && congelado > 0 && descongelando && trxContractV4 && trxContractRetirosV4 && trxContractRetiros_fast) {
+		//console.log(trx)
 
 		console.log("-------------- EJECUCIÓN V4 ------------");
 		console.log("Ejecutor: " + account.wallet);
 		console.log("Wallet SR: " + cuenta.wallet);
 		console.log(" ")
 		console.log("Disponible: " + balance + " TRX");
-		console.log("Congelado: " + (trx.amount - trx.quantity) + " TRX");
+		console.log("Congelado: " + congelado + " TRX");
+		console.log("Descongelando: " + descongelando + " TRX");
 		console.log(" ")
-		console.log("Para retiros v4: " + trxContractRetirosV4 + " TRX")
+		let bTotal = balance + congelado + descongelando
+		console.log("Balance Wallet SR: " + bTotal + " TRX");
 		console.log(" ")
-		console.log("Para retiros Rapidos: " + trxContractRetiros_fast + " TRX")
-		console.log(" ")
-		let total = (parseFloat(trx.amount) + parseFloat(trxContractRetirosV4) + parseFloat(trxContractRetiros_fast)).toFixed(6)
-		console.log("Total: " + total + " TRX");
-		console.log(" ")
-		console.log("Registro en Contrato V4: " + trxContractV4 + " TRX");
+		console.log("Retiros Normales v4: " + trxContractRetirosV4 + " TRX")
+		console.log("Retiros Rapidos v2: " + trxContractRetiros_fast + " TRX")
 		console.log(" ")
 
-		let diferenciaV4 = (total - trxContractV4).toFixed(6)
-		console.log("Diferencia V4: " + diferenciaV4 + " TRX");
+		let total = parseFloat(congelado) + parseFloat(descongelando) + parseFloat(balance) + parseFloat(trxContractRetirosV4) + parseFloat(trxContractRetiros_fast)
 
-		console.log("------------------------------");
+		console.log("Total Disponible: " + total + " TRX");
+		console.log(" ")
+		console.log("Registro en Contrato: " + trxContractV4 + " TRX");
+		console.log(" ")
+
+		let diferenciaV4 = total - trxContractV4
+		console.log("Diferencia: " + diferenciaV4 + " TRX");
+
 
 		let tolerancia = 10; // 1 = 1 TRX
+		let cambioPrecio = false
+
+		console.log("Tolerancia cambio de precio(" + cambioPrecio + "): " + tolerancia + " TRX")
+		console.log("------------------------------");
+
 
 		// ajusta las ganancias
-		if (diferenciaV4 > tolerancia) {
-			await contract_POOL_PROXY.gananciaDirecta(parseInt(diferenciaV4 * 10 ** 6)).send()
+		if (diferenciaV4 > tolerancia && cambioPrecio) {
+			await contract_POOL_PROXY.gananciaDirecta((diferenciaV4 * 10 ** 6).toFixed(0)).send()
 				.then((h) => {
 					console.log("[Ejecución: ganancia directa (" + diferenciaV4 + ") " + h + "]");
 
@@ -632,10 +714,10 @@ async function calculoBRST() {
 		}
 
 		// ajusta las perdidas
-		if (diferenciaV4 * -1 > tolerancia) {
+		if (diferenciaV4 * -1 > tolerancia && cambioPrecio) {
 			diferenciaV4 = diferenciaV4 * -1;
 
-			let calculo = parseInt(diferenciaV4 * 10 ** 6);
+			let calculo = (diferenciaV4 * 10 ** 6).toFixed(0);
 			await contract_POOL_PROXY.asignarPerdida(calculo).send()
 				.then((h) => {
 					console.log("[Ejecución: Ajuste diferencia Negativa (-" + diferenciaV4 + ") -> " + calculo + " | " + h + " ]");
@@ -644,7 +726,7 @@ async function calculoBRST() {
 
 		}
 	} else {
-		console.log("error consulta trx")
+		console.log("error consulta trx en SR")
 	}
 
 };
@@ -655,42 +737,39 @@ async function precioBRST() {
 
 	let result = {}
 
-	let RATE = await contract_POOL_PROXY.RATE().call();
-	RATE = new BigNumber(RATE.toNumber()).shiftedBy(-6).toNumber()
+	let RATE = await contract_POOL_PROXY.RATE().call()
+		.then((r) => new BigNumber(parseInt(r)).shiftedBy(-6).toNumber())
+		.catch((e) => {
+			console.log(e);
+			return null
+		})
 
 	result.RATE = RATE;
 
-	try {
+	let consulta = await fetch("https://api.just.network/swap/scan/statusinfo")
+		.then((r) => { return r.json() })
+		.then((r) => { return r.data.trxPrice })
+		.catch((e) => { console.log(e); return null })
 
-		let consulta = await fetch("https://api.just.network/swap/scan/statusinfo")
-			.then((r) => { return r.json() })
-			.then((r) => { return r.data.trxPrice })
-
-		consulta = new BigNumber(consulta).toNumber()
-
-		lastPriceTRX = consulta
-
-	} catch (error) {
-		console.log(error);
+	if (consulta) {
+		lastPriceTRX = new BigNumber(consulta).toNumber()
 	}
 
-	let Price = new BigNumber(lastPriceTRX).times(RATE).dp(6).toNumber();
-
-	result.Price = Price;
-
-	let consulta3 = {}
+	result.Price = new BigNumber(lastPriceTRX).times(RATE).dp(6).toNumber();
 
 	try {
 
-		consulta3 = await chart("brst", 30, "day")
-		result.variacion = (consulta3[0].value - consulta3[1].value) / (consulta3[1].value)
+		let consulta3 = await chart("brst", 31, "day")
 
-		let variacionMes = ((consulta3[0].value - consulta3[29].value) / (consulta3[29].value))/30
+		if (consulta3.length > 0) {
+			result.variacion = (consulta3[1].value - consulta3[2].value) / (consulta3[2].value)
+			result.APY = (((consulta3[1].value - consulta3[30].value) / (consulta3[30].value)) / 30) * 360
+		}
 
-		result.APY = variacionMes * 360
 
 
-	} catch(error) {
+
+	} catch (error) {
 		console.log(error)
 
 	}
@@ -701,20 +780,17 @@ async function precioBRST() {
 async function enviosTRX() {
 
 	let balanceDWY = await tronWeb3.trx.getUnconfirmedBalance(WALLET_SR);
-	balanceDWY = new BigNumber(balanceDWY).shiftedBy(-6).minus(100);// unidad TRX
+	balanceDWY = new BigNumber(balanceDWY).shiftedBy(-6).minus(95);// unidad TRX
 
 	// retiradas normales por debajo de 1000 TRX las cubre por encima las evita
 
 	let info = await infoContract()
-	info.sun_total = new BigNumber(info.sun_total)
-	info.sun_en_contrato = new BigNumber(info.sun_en_contrato)
 
-	info.requerido = info.sun_total.minus(info.sun_en_contrato)
-
+	let solicitado = new BigNumber(info.sun_total).minus(info.sun_en_contrato).shiftedBy(-6)
 	//let solicitado = new BigNumber(await trxSolicitadoData())
-	let solicitado = info.requerido.shiftedBy(-6)// unidad TRX
 
-	if (solicitado.toNumber() > 0 && balanceDWY > 1 && false) {
+
+	if (solicitado.toNumber() > 0 && balanceDWY > 1) {
 		// enviar lo que alcance
 
 		if (solicitado.toNumber() > balanceDWY) {
@@ -751,7 +827,7 @@ async function enviosTRX() {
 	let balanceRapidas = await tronWeb3.trx.getUnconfirmedBalance("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr");
 	balanceRapidas = new BigNumber(balanceRapidas).shiftedBy(-6);
 
-	let nivel = new BigNumber(5000).minus(balanceRapidas)
+	let nivel = new BigNumber(2500).minus(balanceRapidas)
 
 	if (nivel.toNumber() > balanceDWY.toNumber()) {
 		nivel = balanceDWY
@@ -764,8 +840,8 @@ async function enviosTRX() {
 		try {
 
 			transaction = await tronWeb.transactionBuilder.sendTrx("TKSpw8UXhJYL2DGdBNPZjBfw3iRrVFAxBr", nivel.shiftedBy(6).dp(0).toString(10), "TWVVi4x2QNhRJyhqa7qrwM4aSXnXoUDDwY", 4);
-			transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_1, 4);
-			transaction = await tronWeb.trx.multiSign(transaction, env.APP_PRIVATEKEY_PERM_2, 4);
+			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_1, 4);
+			transaction = await tronWeb.trx.multiSign(transaction, process.env.APP_PRIVATEKEY_PERM_2, 4);
 
 			transaction = await tronWeb.trx.sendRawTransaction(transaction);
 
@@ -786,35 +862,28 @@ async function enviosTRX() {
 
 }
 
-app.get(RUTA, async (req, res) => {
+app.get(URL, async (req, res) => {
 
 	res.send({ "ok": true });
 });
 
 
-app.get(RUTA + 'precio/:moneda', async (req, res) => {
+app.get(URL + 'precio/:moneda', async (req, res) => {
 
 	let moneda = req.params.moneda;
 
-	let response = {
-		"Ok": false,
-		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
-		"Data": {}
-	}
+	let Data = {}
 
 	if (moneda == "BRUT" || moneda == "brut" || moneda == "brut_usd" || moneda == "BRUT_USD") {
 
 
 		let consulta = await precioBRUT();
 
-		response = {
-			"Ok": true,
-			"Data": {
-				"moneda": "BRUT",
-				"trx": consulta.Pricetrx,
-				"usd": consulta.precio,
-				"v24h": consulta.variacion * 100
-			}
+		Data = {
+			"moneda": "BRUT",
+			"trx": consulta.Pricetrx,
+			"usd": consulta.precio,
+			"v24h": consulta.variacion * 100
 		}
 
 	}
@@ -823,78 +892,67 @@ app.get(RUTA + 'precio/:moneda', async (req, res) => {
 
 		let consulta2 = await precioBRST();
 
-		response = {
-			"Ok": true,
-			"Data": {
-				"moneda": "BRST",
-				"trx": consulta2.RATE,
-				"usd": consulta2.Price,
-				"v24h": consulta2.variacion * 100,
-				"IS": (consulta2.variacion * 360) * 100,
-				"APY": ((1 + (consulta2.variacion * 360) / 360) ** 360 - 1) * 100,
-				"lastAPY": consulta2.APY * 100
-
-			}
+		Data = {
+			"moneda": "BRST",
+			"trx": consulta2.RATE,
+			"usd": consulta2.Price,
+			"v24h": consulta2.variacion * 100,
+			"IS": (consulta2.variacion * 360) * 100,
+			"APY": ((1 + (consulta2.variacion * 360) / 360) ** 360 - 1) * 100,
+			"lastAPY": consulta2.APY * 100
 		}
 
 
 	}
 
-	res.send(response);
+	res.json({ success: true, "Ok": true, Data });
 
 });
 
-app.get(RUTA + 'data/:peticion', async (req, res) => {
+app.get(URL + 'data/:peticion', async (req, res) => {
 
-	let peticion = req.params.peticion;
+	let {peticion} = req.params;
 
-	let response = {
-		"Ok": false,
-		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
-		"Data": {}
-	}
+	let Data = {}
 
-	if (peticion == "circulating" || peticion == "totalcoins") {
-
-		let contract = await tronWeb.contract().at(addressContractBrst);
+	let contract = await tronWeb.contract().at(addressContractBrst);
 		let SUPPLY = await contract.totalSupply().call();
 		SUPPLY = parseInt(SUPPLY._hex);
 
-		response = SUPPLY / 10 ** 6;
-		res.send(`${response}`);
+		SUPPLY = SUPPLY / 10 ** 6;
+
+	if (peticion == "circulating" || peticion == "totalcoins") {
+
+		Data = {
+			SUPPLY
+		}
+
+	}else{
+
+		Data = {
+			circulating: SUPPLY,
+			totalCoins: SUPPLY,
+		}
 
 	}
 
-	res.send(response);
+	res.json({Ok: true, Data});
 
 });
 
 async function chart(moneda, limite, temporalidad) {
 
-	let Operador = PrecioBRST
+	let consulta = { error: true, msg: "no data" }
 
 	moneda = moneda.toLowerCase()
 
-	switch (moneda) {
-		case "brut":
-			Operador = PrecioBRUT
-			break;
-
-		default:
-			Operador = PrecioBRST
-			break;
-	}
-
-	let consulta = { error: true, msg: "no data" }
-
 	let datos = [];
-
 
 	try {
 
-		consulta = await Operador.find({ temporalidad: temporalidad }, { _id:0 ,valor: 1, date: 1, valor_alt: 1 }).sort({ date: -1 }).limit(limite)
+		consulta = await Precio.find({ moneda, temporalidad }, { _id: 0, valor: 1, date: 1, valor_alt: 1 }).sort({ date: -1 }).limit(limite)
 
-		datos = consulta.map((obj)=>{
+		datos = consulta.map((obj) => {
 			const newObj = obj.toObject();
 			newObj.date = (new Date(newObj.date)).getTime()
 			newObj.value = newObj.valor
@@ -915,78 +973,67 @@ async function chart(moneda, limite, temporalidad) {
 
 }
 
-app.get(RUTA + 'chartdata/:moneda', async (req, res) => {
+app.get(URL + 'chartdata/:moneda', async (req, res) => {
 
-	let moneda = req.params.moneda;
-	let limite = 30;
-	let temporalidad = "day"
+	let {moneda, limite = 30, temporalidad = "day"} = req.params;
 
-	if (req.query) {
+	let Data = {}
+	let success = false
 
-		if (req.query.temporalidad) {
-			temporalidad = req.query.temporalidad
-		}
-
-		if (req.query.limite) {
-			limite = parseInt(req.query.limite)
-		}
+	if (typeof moneda === 'string' && limite && temporalidad) {
+		Data = await chart(moneda, limite, temporalidad)
+		success = true
 	}
 
-	let response = {
-		"Ok": false,
-		"Message": "No exciste o está mal escrito verifica que tu token si esté listado",
-		"Data": {}
-	}
-
-
-	response = {
-		"Ok": true,
-		"Data": await chart(moneda, limite, temporalidad)
-	}
-
-
-	res.send(response);
+	res.json({success, Ok: true, Data});
 
 });
 
-app.get(RUTA + 'consutla/energia', async (req, res) => {
+app.get(URL + 'consutla/energia', async (req, res) => {
 
-	let peticion = (req.query.wallets).split(",");
+	let { wallets = "" } = req.query
+	let data = {}
 
-	let result = {
-		data: 0
-	}
+	if (typeof wallets === 'string') {
 
-	if (peticion.length >= 1) {
+		wallets = wallets?.split(",");
 
-		const provider_address = peticion;
 
-		let energia = 0;
-		for (let index = 0; index < provider_address.length; index++) {
-			let delegacion = await tronWeb.trx.getCanDelegatedMaxSize(provider_address[index], 'ENERGY')
-			if (delegacion.max_size) {
-				energia += delegacion.max_size
+		if (wallets.length >= 1) {
+
+
+			let energia = 0;
+			for (let index = 0; index < wallets.length; index++) {
+				let delegacion = await tronWeb.trx.getCanDelegatedMaxSize(wallets[index], 'ENERGY')
+				if (delegacion.max_size) {
+					energia += delegacion.max_size
+				}
+
 			}
 
+			data = energia
+
 		}
-
-		result.data = energia
-
 	}
 
-	res.send(result);
+	res.status(200).json({ success: true, data });
 
 });
 
-app.get(RUTA + 'consulta/marketcap/brut', async (req, res) => {
+app.get(URL + 'consulta/marketcap/brut', async (req, res) => {
 
-	let valor = await fetch(CAP_BRUT).then((res) => { return res.json() }).catch(error => { console.error(error) })
+	let valor = await fetch(CAP_BRUT)
+		.then((res) => { return res.json() })
+		.catch(error => { console.error(error) })
 	//console.log(valor)
 	valor = (valor.values[0][0]).replace('.', '');
 	valor = (valor).replace(',', '.');
 	valor = parseFloat(valor);
 
-	let circulante = await fetch(CIRC_BRUT).then((res) => { return res.json() }).catch(error => { console.error(error) })
+	let circulante = await fetch(CIRC_BRUT)
+		.then((res) => { return res.json() })
+		.catch(error => { console.error(error) })
+
 	circulante = (circulante.values[0][0]).replace('.', '');
 	circulante = (circulante).replace(',', '.');
 	circulante = parseFloat(circulante);
@@ -1006,7 +1053,7 @@ app.get(RUTA + 'consulta/marketcap/brut', async (req, res) => {
 })
 
 async function infoContract() {
-	let result = { sun_total: 0, trx_total: 0 };
+	let result = { sun_total: "0", trx_total: 0 };
 	const contractPool = await tronWeb2.contract(abi_POOLBRST, addressContractPoolProxy);
 
 	let tiempo = (await contractPool.TIEMPO().call()).toNumber() * 1000;
@@ -1014,9 +1061,7 @@ async function infoContract() {
 
 	let solicitud = await contractPool.TRON_SOLICITADO().call();
 	//console.log(solicitud)
-	result.sun_total += parseInt(solicitud._hex)
 	result.trx_total += parseInt(solicitud._hex) / 10 ** 6
-
 
 	result.dias_espera = diasDeEspera
 
@@ -1026,73 +1071,36 @@ async function infoContract() {
 
 	result.sun_en_contrato = result.sun_en_contrato.toString(10)
 
-	result.sun_total = result.sun_total.toString(10)
+	result.sun_total = parseInt(solicitud._hex).toString(10)
 
 	return result
 }
 
-app.get(RUTA + 'solicitudes/retiro', async (req, res) => {
+app.get(URL + 'solicitudes/retiro', async (req, res) => {
 
 	res.send(await infoContract())
 })
 
 async function trxSolicitadoData() {
-	let consulta = await fetch("http://localhost:3333/api/v1/" + 'balance/retiro_real').then((r) => { return r.text() })
+	let consulta = await fetch("http://localhost:3333/api/v1/" + 'balance/retiro_real')
+		.then((r) => { return r.text() })
+		.catch(() => { return null })
 
-	consulta = parseFloat(consulta)
+	if (!consulta) return 0;
 
-	if (isNaN(consulta)) {
-		consulta = 0
-
-	}
-
-	return consulta
-
-
+	return parseFloat(consulta)
 }
 
 
-app.get(RUTA + 'tron/solicitado', async (req, res) => {
+app.get(URL + 'tron/solicitado', async (req, res) => {
 
 	res.status(200).send({ sistema: await trxSolicitadoData(), contrato: await infoContract() })
 })
 
-
 createSecret(env.ENCODE_BRUTUS)
 //createSecret(env.ENCODE_CIROTRX)
 
-function createSecret(user) {
 
-	user = md5(user)
-	secret = getSecret(user)
-	console.log({ user, secret })
-	return { user, secret }
-
-}
-
-function getSecret(userMd5) {
-	secret = TronWeb.sha3(userMd5 + env.APP_SECRETY)
-	secret = (secret.split('0x')[1]).toString(10)
-	return secret
-
-}
-
-function decrypData(data, user) {
-
-	try {
-
-		let secret = getSecret(user);
-		let bytes = CryptoJS.AES.decrypt(data, secret);
-		let decryptedData = bytes.toString(CryptoJS.enc.Utf8);
-
-		return JSON.parse(decryptedData)
-
-	} catch (error) {
-		console.log(error)
-		return { error: true, msg: "Error on decrypt data" }
-	}
-
-}
 
 async function rentEnergy({ expire, transaction, wallet, precio, to_address, amount, duration, resource, id_api, token }) {
 
@@ -1106,7 +1114,7 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 	if (expire && transaction && wallet && precio && to_address && amount && duration && resource && id_api && token) {
 
-		hash = await tronWeb.trx.sendRawTransaction(transaction)
+		let hash = await tronWeb.trx.sendRawTransaction(transaction)
 		let envio = hash.transaction.raw_data.contract[0].parameter.value
 
 		if (hash.result && envio.amount >= parseInt(precio) && TronWeb.address.fromHex(envio.to_address) === to_address) {
@@ -1116,9 +1124,9 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 			if (hash.ret[0].contractRet === "SUCCESS") {
 
-				const url = env.REACT_APP_BOT_URL + resource //energy : bandwidth
+				let url = "" + process.env.REACT_APP_BOT_URL + resource //energy : bandwidth
 
-				const body1 = {
+				let body1 = {
 					"id_api": id_api,
 					"wallet": wallet,
 					"amount": amount,
@@ -1170,7 +1178,7 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 		res.error = true
 		res.msg = "No parameters to start"
-		res.hash = hash.txID
+		res.hash = transaction.txID
 		res.point = "Main-API"
 
 
@@ -1180,7 +1188,7 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 }
 
-app.post(RUTA + 'rent/energy', async (req, res) => {
+app.post(URL + 'rent/energy', async (req, res) => {
 
 	let response = { result: false };
 
@@ -1210,13 +1218,19 @@ app.post(RUTA + 'rent/energy', async (req, res) => {
 
 })
 
-async function addKey(key){
+async function addKey(key) {
 
-	if(!key) return;
+	if (!key) return;
 
-	if(await List_Api_key.findOne({key}) !== null) return console.log("key already: ",key);
+	let keyExiste = await ApiKey.findOne({ key })
+		.catch((e) => {
+			console.error(e)
+			return "key already"
+		})
 
-	let instance = new List_Api_key({
+	if (keyExiste !== null) return console.log("key already: ", key);
+
+	let instance = new ApiKey({
 		key: key,
 		lastUse: 0,
 		uses: 0
@@ -1225,43 +1239,52 @@ async function addKey(key){
 	instance.save({});
 }
 
-async function adicionarKeys(){
-	const listaKeys = env.lista_api_key.split(",")
+async function adicionarKeys() {
 
-	for (let index = 0; index < listaKeys.length; index++) {
-		await addKey(listaKeys[index])
-		
+	const listaKeys = env.lista_api_key?.split(",")
+
+	if (listaKeys) {
+		for (let index = 0; index < listaKeys.length; index++) {
+			await addKey(listaKeys[index])
+		}
 	}
+
 }
 
-adicionarKeys()
+async function getApiKey() {
 
-app.get(RUTA + 'selector/apikey', async (req, res) => {
-
-	let result = { "ok": false }
-
-	let lista = await List_Api_key.find({}).sort({lastUse: 1 })
-	
-	//console.log(lista)
+	let apikey = null
+	let lista = await ApiKey.find({}).sort({ lastUse: 1 }).catch(console.error)
 
 	if (lista.length > 0) {
-		result.ok = true
-		result.apikey = lista[0].key
-
-		await List_Api_key.updateOne({_id: lista[0]._id}, { uses: lista[0].uses + 1, lastUse: Date.now() })
+		apikey = lista[0].key
+		await ApiKey.updateOne({ _id: lista[0]._id }, { uses: lista[0].uses + 1, lastUse: Date.now() }).catch(console.error)
 	} else {
-		result.error = "no apikeys saved"
+		console.log("no apikeys saved")
 		adicionarKeys()
 	}
 
-	res.send(result);
+	return apikey
+
+}
+
+app.get(RUTA + 'selector/apikey', async (req, res) => {
+
+	let apikey = await getApiKey();
+
+	if (!apikey){
+		res.status(500).json({ "ok": false });
+	}else{
+		res.status(200).json({ "ok": true, apikey });
+	}
+
 });
 
-app.get(RUTA + 'test/timeout', async (req, res) => {
+app.get(URL + 'test/timeout', async (req, res) => {
 
 	await new Promise(r => setTimeout(r, 60 * 1000));
 
-	res.send({ result: true });
+	res.status(200).json({ result: true });
 });
 
 var server = app.listen(port, () => console.log('Escuchando: http://localhost:' + port + '/api/v1'))

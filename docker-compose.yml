@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    container_name: brutus-api-precio
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - web
+    ports:
+      - 3004:3004
+
+networks:
+  web:
+    external: true
