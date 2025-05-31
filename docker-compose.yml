@@ -2,13 +2,13 @@ services:
   app:
     build: .
     container_name: brutus-api-precio
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
     networks:
       - web
     ports:
-      - 3004:3004
+      - 3004:8000
 
 networks:
   web:

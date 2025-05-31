@@ -17,7 +17,7 @@ const abi_POOLBRST = require("./abi/PoolBRSTv4.json");
 const abi_LOTTERY = require("./abi/Lottery.json");
 const abi_SwapV3 = require("./abi/swapV3.json");
 
-const {createSecret, decrypData} = require('./services/encryption')
+const { createSecret, decrypData } = require('./services/encryption')
 
 const { Precio, ApiKey } = require('./database')
 
@@ -36,7 +36,7 @@ app.use(cors());
 
 const allowedBaseDomains = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : [];
 
-function isAllowedOrigin(origin) {
+function isAllowedOrigin(origin = null) {
 	if (!origin) return false;
 	try {
 		const url = new URL(origin);
@@ -72,7 +72,7 @@ const corsOptionsDelegate = function (req, callback) {
 app.use(cors(corsOptionsDelegate))
 app.options('*', cors(corsOptionsDelegate));
 
-const port = env.PORT || 3004;
+const port = env.PORT || 8000;
 const API = env.APP_GOOGLE_API || "";
 
 const API_last_BRUT = env.APP_GOOGLE_API_BRUT;
@@ -155,8 +155,6 @@ if (develop === "false") {
 		console.log('>Running: ' + new Date().toLocaleString());
 		console.log('-----------------------------------');
 
-
-
 		//brutus functions
 		await comprarBRST();
 		await delay(60)
@@ -165,16 +163,14 @@ if (develop === "false") {
 		await actualizarPrecioBRUTContrato();
 		await delay(60)
 
-		//sorteo loteria
-		await llenarWhiteList();
-
 		console.log('=>Done: ' + new Date().toLocaleString());
 
 	});
 	inicio.start();
 
 	let envios = new CronJob('0 0 2 * * *', async function () {
-		await enviosTRX();
+		// solicitar unstaking retiros normales BRST
+		enviosTRX();
 
 
 	}, null, true, 'UTC');
@@ -182,18 +178,24 @@ if (develop === "false") {
 	envios.start();
 
 
+	// funciones que se ejecutan cada dia
 	let dias = new CronJob('0 0 20 * * *', async function () {
-		await guardarDatos("day");
+		guardarDatos("day");
 		console.log("Datos guardados - Día")
 
+		//reset usos de apikeys
+		adicionarKeys()
+		resetApikeyUses()
 
+		//sorteo loteria
+		hacerSorteo();
 
 	}, null, true, 'America/Bogota');
 
 	dias.start();
 
 	let horas = new CronJob('0 0 */1 * * *', async function () {
-		await guardarDatos("hour");
+		guardarDatos("hour");
 		console.log("Datos guardados - horas => " + new Date().toLocaleString());
 
 		retirarTrxContrato()
@@ -225,8 +227,6 @@ if (develop === "false") {
 
 		//await calculoBRST();
 
-		//sorteo loteria
-		//await llenarWhiteList();
 
 
 
@@ -235,6 +235,16 @@ if (develop === "false") {
 
 }
 
+async function resetApikeyUses() {
+	try {
+		await ApiKey.updateMany({}, { $set: { uses: 0 } });
+		console.log('Reiniciado contador de usos de todas las API keys.');
+	} catch (error) {
+		console.error('Error al reiniciar contadores:', error);
+	}
+}
+
+/*
 async function sendTrxSR(balance) {
 
 	//let balance = await tronWeb3.trx.getBalance()
@@ -254,14 +264,11 @@ async function sendTrxSR(balance) {
 		console.log("https://tronscan.io/#/transaction/" + transaction.txid)
 
 	}
-	/*
-		
-	*/
 
 	//enviar el 90% TRX a la DWY 
-}
+}*/
 
-async function llenarWhiteList() {
+async function hacerSorteo() {
 
 	// si es tiempo de sorteo sortea
 	try {
@@ -868,7 +875,7 @@ app.get(RUTA, async (req, res) => {
 });
 
 
-app.get(RUTA +'precio/:moneda', async (req, res) => {
+app.get(RUTA + 'precio/:moneda', async (req, res) => {
 
 	let moneda = req.params.moneda;
 
@@ -909,17 +916,17 @@ app.get(RUTA +'precio/:moneda', async (req, res) => {
 
 });
 
-app.get(RUTA +'data/:peticion', async (req, res) => {
+app.get(RUTA + 'data/:peticion', async (req, res) => {
 
-	let {peticion} = req.params;
+	let { peticion } = req.params;
 
 	let Data = {}
 
 	let contract = await tronWeb.contract().at(addressContractBrst);
-		let SUPPLY = await contract.totalSupply().call();
-		SUPPLY = parseInt(SUPPLY._hex);
+	let SUPPLY = await contract.totalSupply().call();
+	SUPPLY = parseInt(SUPPLY._hex);
 
-		SUPPLY = SUPPLY / 10 ** 6;
+	SUPPLY = SUPPLY / 10 ** 6;
 
 	if (peticion == "circulating" || peticion == "totalcoins") {
 
@@ -927,7 +934,7 @@ app.get(RUTA +'data/:peticion', async (req, res) => {
 			SUPPLY
 		}
 
-	}else{
+	} else {
 
 		Data = {
 			circulating: SUPPLY,
@@ -936,7 +943,7 @@ app.get(RUTA +'data/:peticion', async (req, res) => {
 
 	}
 
-	res.json({Ok: true, Data});
+	res.json({ Ok: true, Data });
 
 });
 
@@ -973,9 +980,9 @@ async function chart(moneda, limite, temporalidad) {
 
 }
 
-app.get(RUTA +'chartdata/:moneda', async (req, res) => {
+app.get(RUTA + 'chartdata/:moneda', async (req, res) => {
 
-	let {moneda, limite = 30, temporalidad = "day"} = req.params;
+	let { moneda, limite = 30, temporalidad = "day" } = req.params;
 
 	let Data = {}
 	let success = false
@@ -985,11 +992,11 @@ app.get(RUTA +'chartdata/:moneda', async (req, res) => {
 		success = true
 	}
 
-	res.json({success, Ok: true, Data});
+	res.json({ success, Ok: true, Data });
 
 });
 
-app.get(RUTA +'consutla/energia', async (req, res) => {
+app.get(RUTA + 'consutla/energia', async (req, res) => {
 
 	let { wallets = "" } = req.query
 	let data = {}
@@ -1020,7 +1027,7 @@ app.get(RUTA +'consutla/energia', async (req, res) => {
 
 });
 
-app.get(RUTA +'consulta/marketcap/brut', async (req, res) => {
+app.get(RUTA + 'consulta/marketcap/brut', async (req, res) => {
 
 	let valor = await fetch(CAP_BRUT)
 		.then((res) => { return res.json() })
@@ -1076,7 +1083,7 @@ async function infoContract() {
 	return result
 }
 
-app.get(RUTA +'solicitudes/retiro', async (req, res) => {
+app.get(RUTA + 'solicitudes/retiro', async (req, res) => {
 
 	res.send(await infoContract())
 })
@@ -1092,7 +1099,7 @@ async function trxSolicitadoData() {
 }
 
 
-app.get(RUTA +'tron/solicitado', async (req, res) => {
+app.get(RUTA + 'tron/solicitado', async (req, res) => {
 
 	res.status(200).send({ sistema: await trxSolicitadoData(), contrato: await infoContract() })
 })
@@ -1188,7 +1195,7 @@ async function rentEnergy({ expire, transaction, wallet, precio, to_address, amo
 
 }
 
-app.post(RUTA +'rent/energy', async (req, res) => {
+app.post(RUTA + 'rent/energy', async (req, res) => {
 
 	let response = { result: false };
 
@@ -1228,7 +1235,7 @@ async function addKey(key) {
 			return "key already"
 		})
 
-	if (keyExiste !== null) return console.log("key already: ", key);
+	if (keyExiste !== null) return console.log("key already in use: ", key);
 
 	let instance = new ApiKey({
 		key: key,
@@ -1272,15 +1279,15 @@ app.get(RUTA + 'selector/apikey', async (req, res) => {
 
 	let apikey = await getApiKey();
 
-	if (!apikey){
+	if (!apikey) {
 		res.status(500).json({ "ok": false });
-	}else{
+	} else {
 		res.status(200).json({ "ok": true, apikey });
 	}
 
 });
 
-app.get(RUTA +'test/timeout', async (req, res) => {
+app.get(RUTA + 'test/timeout', async (req, res) => {
 
 	await new Promise(r => setTimeout(r, 60 * 1000));
 
