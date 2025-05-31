@@ -23,10 +23,7 @@ const { Precio, ApiKey } = require('./database')
 
 function delay(s = 3) { return new Promise(res => setTimeout(res, s * 1000)); }
 
-let base = "api"
-let version = "v1"
-
-const RUTA = "/" + base + "/" + version + "/"
+const RUTA = "/api/v1/"
 
 const app = express();
 app.use(bodyParser.json());
