@@ -697,7 +697,7 @@ async function calculoBRST() {
 		console.log(" ")
 
 		let diferenciaV4 = total - trxContractV4
-		console.log("Diferencia: " + diferenciaV4 + " TRX");
+		console.log("Diferencia: " + (diferenciaV4).toFixed(6) + " TRX");
 
 
 		let tolerancia = 10; // 1 = 1 TRX
